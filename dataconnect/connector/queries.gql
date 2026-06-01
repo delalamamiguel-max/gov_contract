@@ -51,3 +51,11 @@ query ListPipelineApplications($tenantId: UUID!) @auth(level: USER) {
     createdAt
   }
 }
+
+query GetTenant($id: UUID!) @auth(level: PUBLIC) {
+  tenant(id: $id) {
+    id
+    isPro
+    tokensRemaining
+  }
+}

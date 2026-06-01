@@ -1,4 +1,10 @@
-import ollama from 'ollama';
+import OpenAI from 'openai';
+
+// Initialize the OpenAI client pointing to the Moonshot API
+const openai = new OpenAI({
+  apiKey: process.env.KIMI_API_KEY || 'dummy_key',
+  baseURL: 'https://api.moonshot.cn/v1',
+});
 
 interface FitScoreResult {
   fitScore: number;
@@ -31,25 +37,23 @@ export async function generateFitScore(
   `;
 
   try {
-    // We assume 'llama3' or 'mistral' is installed locally via Ollama.
-    // The user must run `ollama run llama3` on their machine.
-    const response = await ollama.generate({
-      model: 'llama3', // You can change this to mistral, phi3, etc.
-      prompt: prompt,
-      format: 'json',
-      stream: false,
+    const response = await openai.chat.completions.create({
+      model: 'moonshot-v1-8k', 
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      response_format: { type: 'json_object' }
     });
 
-    const parsed = JSON.parse(response.response);
+    const parsed = JSON.parse(response.choices[0].message.content || '{}');
     return {
       fitScore: parsed.fitScore || 0,
       matchSummary: parsed.matchSummary || "Analysis failed.",
     };
   } catch (error) {
-    console.error('Ollama API error:', error);
+    console.error('Cloud AI API error:', error);
     return {
       fitScore: 0,
-      matchSummary: 'Failed to generate fit score due to local AI error. Is Ollama running?',
+      matchSummary: 'Failed to generate fit score. Please verify your Kimi API Key is valid.',
     };
   }
 }

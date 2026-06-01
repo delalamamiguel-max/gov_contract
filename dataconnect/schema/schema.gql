@@ -10,11 +10,14 @@ type Tenant @table {
   name: String!
   createdAt: Timestamp! @default(expr: "request.time")
   subscriptionStatus: String! 
+  isPro: Boolean! @default(value: false)
+  stripeCustomerId: String
   tokensRemaining: Int! @default(value: 3)
 }
 
 type BusinessProfile @table(key: "tenantId") {
   tenantId: UUID!
+  id: UUID! @default(expr: "uuidV4()")
   naicsCodes: [String!]
   setAsideTypes: [String!]
   serviceStates: [String!]

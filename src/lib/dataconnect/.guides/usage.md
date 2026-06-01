@@ -14,17 +14,8 @@ If a user is not using a supported framework, they can use the generated SDK dir
 Here's an example of how to use it with the first 5 operations:
 
 ```js
-import { listOpportunities, searchOpportunities, listPipelineApplications, createPipelineApplication, upsertOpportunity, upsertBusinessProfile, updatePipelineApplicationStatus } from '@govcontract/dataconnect';
+import { createPipelineApplication, upsertOpportunity, upsertBusinessProfile, updatePipelineApplicationStatus, updateTenantProStatus, updateTenantTokens, listOpportunities, searchOpportunities, listPipelineApplications, getTenant } from '@govcontract/dataconnect';
 
-
-// Operation ListOpportunities: 
-const { data } = await ListOpportunities(dataConnect);
-
-// Operation SearchOpportunities:  For variables, look at type SearchOpportunitiesVars in ../index.d.ts
-const { data } = await SearchOpportunities(dataConnect, searchOpportunitiesVars);
-
-// Operation ListPipelineApplications:  For variables, look at type ListPipelineApplicationsVars in ../index.d.ts
-const { data } = await ListPipelineApplications(dataConnect, listPipelineApplicationsVars);
 
 // Operation CreatePipelineApplication:  For variables, look at type CreatePipelineApplicationVars in ../index.d.ts
 const { data } = await CreatePipelineApplication(dataConnect, createPipelineApplicationVars);
@@ -37,6 +28,24 @@ const { data } = await UpsertBusinessProfile(dataConnect, upsertBusinessProfileV
 
 // Operation UpdatePipelineApplicationStatus:  For variables, look at type UpdatePipelineApplicationStatusVars in ../index.d.ts
 const { data } = await UpdatePipelineApplicationStatus(dataConnect, updatePipelineApplicationStatusVars);
+
+// Operation UpdateTenantProStatus:  For variables, look at type UpdateTenantProStatusVars in ../index.d.ts
+const { data } = await UpdateTenantProStatus(dataConnect, updateTenantProStatusVars);
+
+// Operation UpdateTenantTokens:  For variables, look at type UpdateTenantTokensVars in ../index.d.ts
+const { data } = await UpdateTenantTokens(dataConnect, updateTenantTokensVars);
+
+// Operation ListOpportunities: 
+const { data } = await ListOpportunities(dataConnect);
+
+// Operation SearchOpportunities:  For variables, look at type SearchOpportunitiesVars in ../index.d.ts
+const { data } = await SearchOpportunities(dataConnect, searchOpportunitiesVars);
+
+// Operation ListPipelineApplications:  For variables, look at type ListPipelineApplicationsVars in ../index.d.ts
+const { data } = await ListPipelineApplications(dataConnect, listPipelineApplicationsVars);
+
+// Operation GetTenant:  For variables, look at type GetTenantVars in ../index.d.ts
+const { data } = await GetTenant(dataConnect, getTenantVars);
 
 
 ```

@@ -56,3 +56,24 @@ mutation UpdatePipelineApplicationStatus(
     status: $status
   })
 }
+
+mutation UpdateTenantProStatus(
+  $id: UUID!,
+  $isPro: Boolean!,
+  $stripeCustomerId: String
+) @auth(level: PUBLIC) {
+  tenant_update(id: $id, data: {
+    isPro: $isPro,
+    stripeCustomerId: $stripeCustomerId,
+    subscriptionStatus: "active"
+  })
+}
+
+mutation UpdateTenantTokens(
+  $id: UUID!,
+  $tokensRemaining: Int!
+) @auth(level: PUBLIC) {
+  tenant_update(id: $id, data: {
+    tokensRemaining: $tokensRemaining
+  })
+}

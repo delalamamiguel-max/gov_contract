@@ -25,6 +25,18 @@ export interface CreatePipelineApplicationVariables {
   status: string;
 }
 
+export interface GetTenantData {
+  tenant?: {
+    id: UUIDString;
+    isPro: boolean;
+    tokensRemaining: number;
+  } & Tenant_Key;
+}
+
+export interface GetTenantVariables {
+  id: UUIDString;
+}
+
 export interface ListOpportunitiesData {
   opportunities: ({
     noticeId: string;
@@ -102,6 +114,25 @@ export interface UpdatePipelineApplicationStatusVariables {
   status: string;
 }
 
+export interface UpdateTenantProStatusData {
+  tenant_update?: Tenant_Key | null;
+}
+
+export interface UpdateTenantProStatusVariables {
+  id: UUIDString;
+  isPro: boolean;
+  stripeCustomerId?: string | null;
+}
+
+export interface UpdateTenantTokensData {
+  tenant_update?: Tenant_Key | null;
+}
+
+export interface UpdateTenantTokensVariables {
+  id: UUIDString;
+  tokensRemaining: number;
+}
+
 export interface UpsertBusinessProfileData {
   businessProfile_upsert: BusinessProfile_Key;
 }
@@ -135,42 +166,6 @@ export interface User_Key {
   uid: string;
   __typename?: 'User_Key';
 }
-
-interface ListOpportunitiesRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (): QueryRef<ListOpportunitiesData, undefined>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect): QueryRef<ListOpportunitiesData, undefined>;
-  operationName: string;
-}
-export const listOpportunitiesRef: ListOpportunitiesRef;
-
-export function listOpportunities(options?: ExecuteQueryOptions): QueryPromise<ListOpportunitiesData, undefined>;
-export function listOpportunities(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListOpportunitiesData, undefined>;
-
-interface SearchOpportunitiesRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (vars?: SearchOpportunitiesVariables): QueryRef<SearchOpportunitiesData, SearchOpportunitiesVariables>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars?: SearchOpportunitiesVariables): QueryRef<SearchOpportunitiesData, SearchOpportunitiesVariables>;
-  operationName: string;
-}
-export const searchOpportunitiesRef: SearchOpportunitiesRef;
-
-export function searchOpportunities(vars?: SearchOpportunitiesVariables, options?: ExecuteQueryOptions): QueryPromise<SearchOpportunitiesData, SearchOpportunitiesVariables>;
-export function searchOpportunities(dc: DataConnect, vars?: SearchOpportunitiesVariables, options?: ExecuteQueryOptions): QueryPromise<SearchOpportunitiesData, SearchOpportunitiesVariables>;
-
-interface ListPipelineApplicationsRef {
-  /* Allow users to create refs without passing in DataConnect */
-  (vars: ListPipelineApplicationsVariables): QueryRef<ListPipelineApplicationsData, ListPipelineApplicationsVariables>;
-  /* Allow users to pass in custom DataConnect instances */
-  (dc: DataConnect, vars: ListPipelineApplicationsVariables): QueryRef<ListPipelineApplicationsData, ListPipelineApplicationsVariables>;
-  operationName: string;
-}
-export const listPipelineApplicationsRef: ListPipelineApplicationsRef;
-
-export function listPipelineApplications(vars: ListPipelineApplicationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListPipelineApplicationsData, ListPipelineApplicationsVariables>;
-export function listPipelineApplications(dc: DataConnect, vars: ListPipelineApplicationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListPipelineApplicationsData, ListPipelineApplicationsVariables>;
 
 interface CreatePipelineApplicationRef {
   /* Allow users to create refs without passing in DataConnect */
@@ -219,4 +214,76 @@ export const updatePipelineApplicationStatusRef: UpdatePipelineApplicationStatus
 
 export function updatePipelineApplicationStatus(vars: UpdatePipelineApplicationStatusVariables): MutationPromise<UpdatePipelineApplicationStatusData, UpdatePipelineApplicationStatusVariables>;
 export function updatePipelineApplicationStatus(dc: DataConnect, vars: UpdatePipelineApplicationStatusVariables): MutationPromise<UpdatePipelineApplicationStatusData, UpdatePipelineApplicationStatusVariables>;
+
+interface UpdateTenantProStatusRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateTenantProStatusVariables): MutationRef<UpdateTenantProStatusData, UpdateTenantProStatusVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateTenantProStatusVariables): MutationRef<UpdateTenantProStatusData, UpdateTenantProStatusVariables>;
+  operationName: string;
+}
+export const updateTenantProStatusRef: UpdateTenantProStatusRef;
+
+export function updateTenantProStatus(vars: UpdateTenantProStatusVariables): MutationPromise<UpdateTenantProStatusData, UpdateTenantProStatusVariables>;
+export function updateTenantProStatus(dc: DataConnect, vars: UpdateTenantProStatusVariables): MutationPromise<UpdateTenantProStatusData, UpdateTenantProStatusVariables>;
+
+interface UpdateTenantTokensRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateTenantTokensVariables): MutationRef<UpdateTenantTokensData, UpdateTenantTokensVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: UpdateTenantTokensVariables): MutationRef<UpdateTenantTokensData, UpdateTenantTokensVariables>;
+  operationName: string;
+}
+export const updateTenantTokensRef: UpdateTenantTokensRef;
+
+export function updateTenantTokens(vars: UpdateTenantTokensVariables): MutationPromise<UpdateTenantTokensData, UpdateTenantTokensVariables>;
+export function updateTenantTokens(dc: DataConnect, vars: UpdateTenantTokensVariables): MutationPromise<UpdateTenantTokensData, UpdateTenantTokensVariables>;
+
+interface ListOpportunitiesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (): QueryRef<ListOpportunitiesData, undefined>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect): QueryRef<ListOpportunitiesData, undefined>;
+  operationName: string;
+}
+export const listOpportunitiesRef: ListOpportunitiesRef;
+
+export function listOpportunities(options?: ExecuteQueryOptions): QueryPromise<ListOpportunitiesData, undefined>;
+export function listOpportunities(dc: DataConnect, options?: ExecuteQueryOptions): QueryPromise<ListOpportunitiesData, undefined>;
+
+interface SearchOpportunitiesRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: SearchOpportunitiesVariables): QueryRef<SearchOpportunitiesData, SearchOpportunitiesVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars?: SearchOpportunitiesVariables): QueryRef<SearchOpportunitiesData, SearchOpportunitiesVariables>;
+  operationName: string;
+}
+export const searchOpportunitiesRef: SearchOpportunitiesRef;
+
+export function searchOpportunities(vars?: SearchOpportunitiesVariables, options?: ExecuteQueryOptions): QueryPromise<SearchOpportunitiesData, SearchOpportunitiesVariables>;
+export function searchOpportunities(dc: DataConnect, vars?: SearchOpportunitiesVariables, options?: ExecuteQueryOptions): QueryPromise<SearchOpportunitiesData, SearchOpportunitiesVariables>;
+
+interface ListPipelineApplicationsRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: ListPipelineApplicationsVariables): QueryRef<ListPipelineApplicationsData, ListPipelineApplicationsVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: ListPipelineApplicationsVariables): QueryRef<ListPipelineApplicationsData, ListPipelineApplicationsVariables>;
+  operationName: string;
+}
+export const listPipelineApplicationsRef: ListPipelineApplicationsRef;
+
+export function listPipelineApplications(vars: ListPipelineApplicationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListPipelineApplicationsData, ListPipelineApplicationsVariables>;
+export function listPipelineApplications(dc: DataConnect, vars: ListPipelineApplicationsVariables, options?: ExecuteQueryOptions): QueryPromise<ListPipelineApplicationsData, ListPipelineApplicationsVariables>;
+
+interface GetTenantRef {
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetTenantVariables): QueryRef<GetTenantData, GetTenantVariables>;
+  /* Allow users to pass in custom DataConnect instances */
+  (dc: DataConnect, vars: GetTenantVariables): QueryRef<GetTenantData, GetTenantVariables>;
+  operationName: string;
+}
+export const getTenantRef: GetTenantRef;
+
+export function getTenant(vars: GetTenantVariables, options?: ExecuteQueryOptions): QueryPromise<GetTenantData, GetTenantVariables>;
+export function getTenant(dc: DataConnect, vars: GetTenantVariables, options?: ExecuteQueryOptions): QueryPromise<GetTenantData, GetTenantVariables>;
 

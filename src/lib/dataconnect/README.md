@@ -11,11 +11,14 @@ This README will guide you through the process of using the generated JavaScript
   - [*ListOpportunities*](#listopportunities)
   - [*SearchOpportunities*](#searchopportunities)
   - [*ListPipelineApplications*](#listpipelineapplications)
+  - [*GetTenant*](#gettenant)
 - [**Mutations**](#mutations)
   - [*CreatePipelineApplication*](#createpipelineapplication)
   - [*UpsertOpportunity*](#upsertopportunity)
   - [*UpsertBusinessProfile*](#upsertbusinessprofile)
   - [*UpdatePipelineApplicationStatus*](#updatepipelineapplicationstatus)
+  - [*UpdateTenantProStatus*](#updatetenantprostatus)
+  - [*UpdateTenantTokens*](#updatetenanttokens)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `default`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -405,6 +408,119 @@ console.log(data.pipelineApplications);
 executeQuery(ref).then((response) => {
   const data = response.data;
   console.log(data.pipelineApplications);
+});
+```
+
+## GetTenant
+You can execute the `GetTenant` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+getTenant(vars: GetTenantVariables, options?: ExecuteQueryOptions): QueryPromise<GetTenantData, GetTenantVariables>;
+
+interface GetTenantRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: GetTenantVariables): QueryRef<GetTenantData, GetTenantVariables>;
+}
+export const getTenantRef: GetTenantRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+getTenant(dc: DataConnect, vars: GetTenantVariables, options?: ExecuteQueryOptions): QueryPromise<GetTenantData, GetTenantVariables>;
+
+interface GetTenantRef {
+  ...
+  (dc: DataConnect, vars: GetTenantVariables): QueryRef<GetTenantData, GetTenantVariables>;
+}
+export const getTenantRef: GetTenantRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the getTenantRef:
+```typescript
+const name = getTenantRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `GetTenant` query requires an argument of type `GetTenantVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface GetTenantVariables {
+  id: UUIDString;
+}
+```
+### Return Type
+Recall that executing the `GetTenant` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `GetTenantData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface GetTenantData {
+  tenant?: {
+    id: UUIDString;
+    isPro: boolean;
+    tokensRemaining: number;
+  } & Tenant_Key;
+}
+```
+### Using `GetTenant`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, getTenant, GetTenantVariables } from '@govcontract/dataconnect';
+
+// The `GetTenant` query requires an argument of type `GetTenantVariables`:
+const getTenantVars: GetTenantVariables = {
+  id: ..., 
+};
+
+// Call the `getTenant()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await getTenant(getTenantVars);
+// Variables can be defined inline as well.
+const { data } = await getTenant({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await getTenant(dataConnect, getTenantVars);
+
+console.log(data.tenant);
+
+// Or, you can use the `Promise` API.
+getTenant(getTenantVars).then((response) => {
+  const data = response.data;
+  console.log(data.tenant);
+});
+```
+
+### Using `GetTenant`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, getTenantRef, GetTenantVariables } from '@govcontract/dataconnect';
+
+// The `GetTenant` query requires an argument of type `GetTenantVariables`:
+const getTenantVars: GetTenantVariables = {
+  id: ..., 
+};
+
+// Call the `getTenantRef()` function to get a reference to the query.
+const ref = getTenantRef(getTenantVars);
+// Variables can be defined inline as well.
+const ref = getTenantRef({ id: ..., });
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = getTenantRef(dataConnect, getTenantVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.tenant);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.tenant);
 });
 ```
 
@@ -904,6 +1020,233 @@ console.log(data.pipelineApplication_update);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.pipelineApplication_update);
+});
+```
+
+## UpdateTenantProStatus
+You can execute the `UpdateTenantProStatus` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+updateTenantProStatus(vars: UpdateTenantProStatusVariables): MutationPromise<UpdateTenantProStatusData, UpdateTenantProStatusVariables>;
+
+interface UpdateTenantProStatusRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateTenantProStatusVariables): MutationRef<UpdateTenantProStatusData, UpdateTenantProStatusVariables>;
+}
+export const updateTenantProStatusRef: UpdateTenantProStatusRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+updateTenantProStatus(dc: DataConnect, vars: UpdateTenantProStatusVariables): MutationPromise<UpdateTenantProStatusData, UpdateTenantProStatusVariables>;
+
+interface UpdateTenantProStatusRef {
+  ...
+  (dc: DataConnect, vars: UpdateTenantProStatusVariables): MutationRef<UpdateTenantProStatusData, UpdateTenantProStatusVariables>;
+}
+export const updateTenantProStatusRef: UpdateTenantProStatusRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateTenantProStatusRef:
+```typescript
+const name = updateTenantProStatusRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpdateTenantProStatus` mutation requires an argument of type `UpdateTenantProStatusVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpdateTenantProStatusVariables {
+  id: UUIDString;
+  isPro: boolean;
+  stripeCustomerId?: string | null;
+}
+```
+### Return Type
+Recall that executing the `UpdateTenantProStatus` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpdateTenantProStatusData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpdateTenantProStatusData {
+  tenant_update?: Tenant_Key | null;
+}
+```
+### Using `UpdateTenantProStatus`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, updateTenantProStatus, UpdateTenantProStatusVariables } from '@govcontract/dataconnect';
+
+// The `UpdateTenantProStatus` mutation requires an argument of type `UpdateTenantProStatusVariables`:
+const updateTenantProStatusVars: UpdateTenantProStatusVariables = {
+  id: ..., 
+  isPro: ..., 
+  stripeCustomerId: ..., // optional
+};
+
+// Call the `updateTenantProStatus()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await updateTenantProStatus(updateTenantProStatusVars);
+// Variables can be defined inline as well.
+const { data } = await updateTenantProStatus({ id: ..., isPro: ..., stripeCustomerId: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await updateTenantProStatus(dataConnect, updateTenantProStatusVars);
+
+console.log(data.tenant_update);
+
+// Or, you can use the `Promise` API.
+updateTenantProStatus(updateTenantProStatusVars).then((response) => {
+  const data = response.data;
+  console.log(data.tenant_update);
+});
+```
+
+### Using `UpdateTenantProStatus`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, updateTenantProStatusRef, UpdateTenantProStatusVariables } from '@govcontract/dataconnect';
+
+// The `UpdateTenantProStatus` mutation requires an argument of type `UpdateTenantProStatusVariables`:
+const updateTenantProStatusVars: UpdateTenantProStatusVariables = {
+  id: ..., 
+  isPro: ..., 
+  stripeCustomerId: ..., // optional
+};
+
+// Call the `updateTenantProStatusRef()` function to get a reference to the mutation.
+const ref = updateTenantProStatusRef(updateTenantProStatusVars);
+// Variables can be defined inline as well.
+const ref = updateTenantProStatusRef({ id: ..., isPro: ..., stripeCustomerId: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = updateTenantProStatusRef(dataConnect, updateTenantProStatusVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.tenant_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.tenant_update);
+});
+```
+
+## UpdateTenantTokens
+You can execute the `UpdateTenantTokens` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+updateTenantTokens(vars: UpdateTenantTokensVariables): MutationPromise<UpdateTenantTokensData, UpdateTenantTokensVariables>;
+
+interface UpdateTenantTokensRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdateTenantTokensVariables): MutationRef<UpdateTenantTokensData, UpdateTenantTokensVariables>;
+}
+export const updateTenantTokensRef: UpdateTenantTokensRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+updateTenantTokens(dc: DataConnect, vars: UpdateTenantTokensVariables): MutationPromise<UpdateTenantTokensData, UpdateTenantTokensVariables>;
+
+interface UpdateTenantTokensRef {
+  ...
+  (dc: DataConnect, vars: UpdateTenantTokensVariables): MutationRef<UpdateTenantTokensData, UpdateTenantTokensVariables>;
+}
+export const updateTenantTokensRef: UpdateTenantTokensRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updateTenantTokensRef:
+```typescript
+const name = updateTenantTokensRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpdateTenantTokens` mutation requires an argument of type `UpdateTenantTokensVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpdateTenantTokensVariables {
+  id: UUIDString;
+  tokensRemaining: number;
+}
+```
+### Return Type
+Recall that executing the `UpdateTenantTokens` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpdateTenantTokensData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpdateTenantTokensData {
+  tenant_update?: Tenant_Key | null;
+}
+```
+### Using `UpdateTenantTokens`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, updateTenantTokens, UpdateTenantTokensVariables } from '@govcontract/dataconnect';
+
+// The `UpdateTenantTokens` mutation requires an argument of type `UpdateTenantTokensVariables`:
+const updateTenantTokensVars: UpdateTenantTokensVariables = {
+  id: ..., 
+  tokensRemaining: ..., 
+};
+
+// Call the `updateTenantTokens()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await updateTenantTokens(updateTenantTokensVars);
+// Variables can be defined inline as well.
+const { data } = await updateTenantTokens({ id: ..., tokensRemaining: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await updateTenantTokens(dataConnect, updateTenantTokensVars);
+
+console.log(data.tenant_update);
+
+// Or, you can use the `Promise` API.
+updateTenantTokens(updateTenantTokensVars).then((response) => {
+  const data = response.data;
+  console.log(data.tenant_update);
+});
+```
+
+### Using `UpdateTenantTokens`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, updateTenantTokensRef, UpdateTenantTokensVariables } from '@govcontract/dataconnect';
+
+// The `UpdateTenantTokens` mutation requires an argument of type `UpdateTenantTokensVariables`:
+const updateTenantTokensVars: UpdateTenantTokensVariables = {
+  id: ..., 
+  tokensRemaining: ..., 
+};
+
+// Call the `updateTenantTokensRef()` function to get a reference to the mutation.
+const ref = updateTenantTokensRef(updateTenantTokensVars);
+// Variables can be defined inline as well.
+const ref = updateTenantTokensRef({ id: ..., tokensRemaining: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = updateTenantTokensRef(dataConnect, updateTenantTokensVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.tenant_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.tenant_update);
 });
 ```
 
