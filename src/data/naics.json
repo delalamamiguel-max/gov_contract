@@ -1,0 +1,22 @@
+[
+  {"code": "541511", "title": "Custom Computer Programming Services"},
+  {"code": "541512", "title": "Computer Systems Design Services"},
+  {"code": "541513", "title": "Computer Facilities Management Services"},
+  {"code": "541519", "title": "Other Computer Related Services"},
+  {"code": "541611", "title": "Administrative Management and General Management Consulting Services"},
+  {"code": "541612", "title": "Human Resources Consulting Services"},
+  {"code": "541613", "title": "Marketing Consulting Services"},
+  {"code": "541618", "title": "Other Management Consulting Services"},
+  {"code": "541690", "title": "Other Scientific and Technical Consulting Services"},
+  {"code": "541330", "title": "Engineering Services"},
+  {"code": "541990", "title": "All Other Professional, Scientific, and Technical Services"},
+  {"code": "561110", "title": "Office Administrative Services"},
+  {"code": "561210", "title": "Facilities Support Services"},
+  {"code": "561499", "title": "All Other Business Support Services"},
+  {"code": "236220", "title": "Commercial and Institutional Building Construction"},
+  {"code": "611430", "title": "Professional and Management Development Training"},
+  {"code": "518210", "title": "Computing Infrastructure Providers, Data Processing, Web Hosting, and Related Services"},
+  {"code": "541715", "title": "Research and Development in the Physical, Engineering, and Life Sciences"},
+  {"code": "541219", "title": "Other Accounting Services"},
+  {"code": "493110", "title": "General Warehousing and Storage"}
+]

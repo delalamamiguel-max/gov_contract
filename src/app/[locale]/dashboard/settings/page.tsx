@@ -1,59 +1,93 @@
-import { Users, Mail, Trash2 } from 'lucide-react';
+'use client';
+
+import React, { useState } from 'react';
+import NAICSAutocomplete from '@/components/NAICSAutocomplete';
+import CurrencyInput from '@/components/CurrencyInput';
 
 export default function SettingsPage() {
-  // Mock data representing workers in the admin's tenant
-  const workers = [
-    { id: 1, email: 'john@example.com', role: 'worker', status: 'active' },
-    { id: 2, email: 'sarah@example.com', role: 'worker', status: 'pending' },
-  ];
+  const [selectedNAICS, setSelectedNAICS] = useState<string[]>(['541511', '541512']);
+  const [minContract, setMinContract] = useState<number | ''>(50000);
+  const [maxContract, setMaxContract] = useState<number | ''>(5000000);
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          naicsCodes: selectedNAICS,
+          setAsideTypes: [], // Add actual set-aside state later
+          minCapacity: minContract,
+          maxCapacity: maxContract
+        })
+      });
+      alert('Settings Saved Successfully!');
+    } catch (error) {
+      console.error(error);
+      alert('Error saving settings');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
-    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '800px' }}>
       <header>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Tenant Settings</h1>
-        <p>Manage your billing and invite workers to your workspace.</p>
+        <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Profile Settings</h1>
+        <p>Update your business capabilities to tune the contract matching engine.</p>
       </header>
 
-      {/* Subscription Status Panel */}
-      <div className="glass-panel" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <h2 style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          Subscription Status
-        </h2>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-          <div>
-            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Pro Plan (4 Seats)</h3>
-            <p style={{ color: 'var(--text-secondary)' }}>You are using 3 out of 4 available seats.</p>
+      <div className="glass-panel" style={{ padding: '2rem' }}>
+        <h2 style={{ fontSize: '1.5rem', marginBottom: '2rem' }}>Business Capabilities</h2>
+        
+        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          
+          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2rem' }}>
+            <NAICSAutocomplete 
+              selectedCodes={selectedNAICS} 
+              onChange={setSelectedNAICS} 
+            />
           </div>
-          <button className="btn btn-secondary">Manage Billing via Stripe</button>
-        </div>
-      </div>
 
-      {/* Team Management Panel */}
-      <div className="glass-panel" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Users size={24} /> Team Members (Workers)
-          </h2>
-          <button className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Mail size={18} /> Invite Worker
-          </button>
-        </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2rem' }}>
+            <label style={{ fontWeight: 500, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              Set-Aside Eligibility
+            </label>
+            <select className="form-input">
+              <option value="none">None (Full & Open)</option>
+              <option value="sba">Small Business (SBA)</option>
+              <option value="8a">8(a) Business Development</option>
+              <option value="hubzone">HUBZone</option>
+              <option value="wosb">Women-Owned (WOSB)</option>
+              <option value="sdvosb">Service-Disabled Veteran (SDVOSB)</option>
+            </select>
+          </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-          {workers.map((worker) => (
-            <div key={worker.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-              <div>
-                <h4 style={{ fontWeight: 600 }}>{worker.email}</h4>
-                <span style={{ fontSize: '0.75rem', padding: '0.1rem 0.5rem', background: worker.status === 'active' ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)', color: worker.status === 'active' ? '#34d399' : '#fbbf24', borderRadius: '12px', marginTop: '0.25rem', display: 'inline-block' }}>
-                  {worker.status.toUpperCase()}
-                </span>
-              </div>
-              <button style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '0.5rem' }}>
-                <Trash2 size={18} />
-              </button>
-            </div>
-          ))}
-        </div>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <CurrencyInput 
+              label="Min Contract Size ($)"
+              placeholder="e.g. $50,000"
+              value={minContract}
+              onChange={setMinContract}
+            />
+            <CurrencyInput 
+              label="Max Contract Size ($)"
+              placeholder="e.g. $5,000,000"
+              value={maxContract}
+              onChange={setMaxContract}
+            />
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <button type="submit" className="btn btn-primary" style={{ padding: '0.75rem 2rem' }}>
+              Save Settings
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

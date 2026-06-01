@@ -7,20 +7,6 @@ const connectorConfig = {
 };
 exports.connectorConfig = connectorConfig;
 
-const createPipelineApplicationRef = (dcOrVars, vars) => {
-  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
-  dcInstance._useGeneratedSdk();
-  return mutationRef(dcInstance, 'CreatePipelineApplication', inputVars);
-}
-createPipelineApplicationRef.operationName = 'CreatePipelineApplication';
-exports.createPipelineApplicationRef = createPipelineApplicationRef;
-
-exports.createPipelineApplication = function createPipelineApplication(dcOrVars, vars) {
-  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
-  return executeMutation(createPipelineApplicationRef(dcInstance, inputVars));
-}
-;
-
 const listOpportunitiesRef = (dc) => {
   const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
   dcInstance._useGeneratedSdk();
@@ -36,6 +22,21 @@ exports.listOpportunities = function listOpportunities(dcOrOptions, options) {
 }
 ;
 
+const searchOpportunitiesRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'SearchOpportunities', inputVars);
+}
+searchOpportunitiesRef.operationName = 'SearchOpportunities';
+exports.searchOpportunitiesRef = searchOpportunitiesRef;
+
+exports.searchOpportunities = function searchOpportunities(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, false);
+  return executeQuery(searchOpportunitiesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
 const listPipelineApplicationsRef = (dcOrVars, vars) => {
   const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
   dcInstance._useGeneratedSdk();
@@ -48,5 +49,61 @@ exports.listPipelineApplications = function listPipelineApplications(dcOrVars, v
   
   const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
   return executeQuery(listPipelineApplicationsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const createPipelineApplicationRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreatePipelineApplication', inputVars);
+}
+createPipelineApplicationRef.operationName = 'CreatePipelineApplication';
+exports.createPipelineApplicationRef = createPipelineApplicationRef;
+
+exports.createPipelineApplication = function createPipelineApplication(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createPipelineApplicationRef(dcInstance, inputVars));
+}
+;
+
+const upsertOpportunityRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertOpportunity', inputVars);
+}
+upsertOpportunityRef.operationName = 'UpsertOpportunity';
+exports.upsertOpportunityRef = upsertOpportunityRef;
+
+exports.upsertOpportunity = function upsertOpportunity(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertOpportunityRef(dcInstance, inputVars));
+}
+;
+
+const upsertBusinessProfileRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpsertBusinessProfile', inputVars);
+}
+upsertBusinessProfileRef.operationName = 'UpsertBusinessProfile';
+exports.upsertBusinessProfileRef = upsertBusinessProfileRef;
+
+exports.upsertBusinessProfile = function upsertBusinessProfile(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(upsertBusinessProfileRef(dcInstance, inputVars));
+}
+;
+
+const updatePipelineApplicationStatusRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'UpdatePipelineApplicationStatus', inputVars);
+}
+updatePipelineApplicationStatusRef.operationName = 'UpdatePipelineApplicationStatus';
+exports.updatePipelineApplicationStatusRef = updatePipelineApplicationStatusRef;
+
+exports.updatePipelineApplicationStatus = function updatePipelineApplicationStatus(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(updatePipelineApplicationStatusRef(dcInstance, inputVars));
 }
 ;

@@ -13,9 +13,8 @@ type Tenant @table {
   tokensRemaining: Int! @default(value: 3)
 }
 
-type BusinessProfile @table {
-  id: UUID! @default(expr: "uuidV4()")
-  tenantId: UUID! @unique
+type BusinessProfile @table(key: "tenantId") {
+  tenantId: UUID!
   naicsCodes: [String!]
   setAsideTypes: [String!]
   serviceStates: [String!]
@@ -23,9 +22,8 @@ type BusinessProfile @table {
   maxCapacity: Int
 }
 
-type Opportunity @table {
-  id: UUID! @default(expr: "uuidV4()")
-  noticeId: String! @unique
+type Opportunity @table(key: "noticeId") {
+  noticeId: String!
   title: String!
   agency: String!
   solicitationNumber: String

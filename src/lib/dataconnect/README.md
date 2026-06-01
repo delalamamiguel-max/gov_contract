@@ -9,9 +9,13 @@ This README will guide you through the process of using the generated JavaScript
   - [*Connecting to the local Emulator*](#connecting-to-the-local-emulator)
 - [**Queries**](#queries)
   - [*ListOpportunities*](#listopportunities)
+  - [*SearchOpportunities*](#searchopportunities)
   - [*ListPipelineApplications*](#listpipelineapplications)
 - [**Mutations**](#mutations)
   - [*CreatePipelineApplication*](#createpipelineapplication)
+  - [*UpsertOpportunity*](#upsertopportunity)
+  - [*UpsertBusinessProfile*](#upsertbusinessprofile)
+  - [*UpdatePipelineApplicationStatus*](#updatepipelineapplicationstatus)
 
 # Accessing the connector
 A connector is a collection of Queries and Mutations. One SDK is generated for each connector - this SDK is generated for the connector `default`. You can find more information about connectors in the [Data Connect documentation](https://firebase.google.com/docs/data-connect#how-does).
@@ -96,7 +100,6 @@ The `data` property is an object of type `ListOpportunitiesData`, which is defin
 ```typescript
 export interface ListOpportunitiesData {
   opportunities: ({
-    id: UUIDString;
     noticeId: string;
     title: string;
     agency: string;
@@ -161,6 +164,130 @@ executeQuery(ref).then((response) => {
 });
 ```
 
+## SearchOpportunities
+You can execute the `SearchOpportunities` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+searchOpportunities(vars?: SearchOpportunitiesVariables, options?: ExecuteQueryOptions): QueryPromise<SearchOpportunitiesData, SearchOpportunitiesVariables>;
+
+interface SearchOpportunitiesRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars?: SearchOpportunitiesVariables): QueryRef<SearchOpportunitiesData, SearchOpportunitiesVariables>;
+}
+export const searchOpportunitiesRef: SearchOpportunitiesRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `QueryRef` function.
+```typescript
+searchOpportunities(dc: DataConnect, vars?: SearchOpportunitiesVariables, options?: ExecuteQueryOptions): QueryPromise<SearchOpportunitiesData, SearchOpportunitiesVariables>;
+
+interface SearchOpportunitiesRef {
+  ...
+  (dc: DataConnect, vars?: SearchOpportunitiesVariables): QueryRef<SearchOpportunitiesData, SearchOpportunitiesVariables>;
+}
+export const searchOpportunitiesRef: SearchOpportunitiesRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the searchOpportunitiesRef:
+```typescript
+const name = searchOpportunitiesRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `SearchOpportunities` query has an optional argument of type `SearchOpportunitiesVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface SearchOpportunitiesVariables {
+  keyword?: string | null;
+}
+```
+### Return Type
+Recall that executing the `SearchOpportunities` query returns a `QueryPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `SearchOpportunitiesData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface SearchOpportunitiesData {
+  opportunities: ({
+    noticeId: string;
+    title: string;
+    agency: string;
+    solicitationNumber?: string | null;
+    naicsCode?: string | null;
+    setAsideType?: string | null;
+    postedDate: TimestampString;
+    responseDeadline?: TimestampString | null;
+    estimatedValue?: number | null;
+    sourceUrl: string;
+  } & Opportunity_Key)[];
+}
+```
+### Using `SearchOpportunities`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, searchOpportunities, SearchOpportunitiesVariables } from '@govcontract/dataconnect';
+
+// The `SearchOpportunities` query has an optional argument of type `SearchOpportunitiesVariables`:
+const searchOpportunitiesVars: SearchOpportunitiesVariables = {
+  keyword: ..., // optional
+};
+
+// Call the `searchOpportunities()` function to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await searchOpportunities(searchOpportunitiesVars);
+// Variables can be defined inline as well.
+const { data } = await searchOpportunities({ keyword: ..., });
+// Since all variables are optional for this query, you can omit the `SearchOpportunitiesVariables` argument.
+const { data } = await searchOpportunities();
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await searchOpportunities(dataConnect, searchOpportunitiesVars);
+
+console.log(data.opportunities);
+
+// Or, you can use the `Promise` API.
+searchOpportunities(searchOpportunitiesVars).then((response) => {
+  const data = response.data;
+  console.log(data.opportunities);
+});
+```
+
+### Using `SearchOpportunities`'s `QueryRef` function
+
+```typescript
+import { getDataConnect, executeQuery } from 'firebase/data-connect';
+import { connectorConfig, searchOpportunitiesRef, SearchOpportunitiesVariables } from '@govcontract/dataconnect';
+
+// The `SearchOpportunities` query has an optional argument of type `SearchOpportunitiesVariables`:
+const searchOpportunitiesVars: SearchOpportunitiesVariables = {
+  keyword: ..., // optional
+};
+
+// Call the `searchOpportunitiesRef()` function to get a reference to the query.
+const ref = searchOpportunitiesRef(searchOpportunitiesVars);
+// Variables can be defined inline as well.
+const ref = searchOpportunitiesRef({ keyword: ..., });
+// Since all variables are optional for this query, you can omit the `SearchOpportunitiesVariables` argument.
+const ref = searchOpportunitiesRef();
+
+// You can also pass in a `DataConnect` instance to the `QueryRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = searchOpportunitiesRef(dataConnect, searchOpportunitiesVars);
+
+// Call `executeQuery()` on the reference to execute the query.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeQuery(ref);
+
+console.log(data.opportunities);
+
+// Or, you can use the `Promise` API.
+executeQuery(ref).then((response) => {
+  const data = response.data;
+  console.log(data.opportunities);
+});
+```
+
 ## ListPipelineApplications
 You can execute the `ListPipelineApplications` query using the following action shortcut function, or by calling `executeQuery()` after calling the following `QueryRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
 ```typescript
@@ -207,7 +334,7 @@ export interface ListPipelineApplicationsData {
   pipelineApplications: ({
     id: UUIDString;
     opportunity: {
-      id: UUIDString;
+      noticeId: string;
       title: string;
       agency: string;
       responseDeadline?: TimestampString | null;
@@ -331,7 +458,7 @@ The `CreatePipelineApplication` mutation requires an argument of type `CreatePip
 ```typescript
 export interface CreatePipelineApplicationVariables {
   tenantId: UUIDString;
-  opportunityId: UUIDString;
+  opportunityId: string;
   status: string;
 }
 ```
@@ -408,6 +535,375 @@ console.log(data.pipelineApplication_insert);
 executeMutation(ref).then((response) => {
   const data = response.data;
   console.log(data.pipelineApplication_insert);
+});
+```
+
+## UpsertOpportunity
+You can execute the `UpsertOpportunity` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+upsertOpportunity(vars: UpsertOpportunityVariables): MutationPromise<UpsertOpportunityData, UpsertOpportunityVariables>;
+
+interface UpsertOpportunityRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertOpportunityVariables): MutationRef<UpsertOpportunityData, UpsertOpportunityVariables>;
+}
+export const upsertOpportunityRef: UpsertOpportunityRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertOpportunity(dc: DataConnect, vars: UpsertOpportunityVariables): MutationPromise<UpsertOpportunityData, UpsertOpportunityVariables>;
+
+interface UpsertOpportunityRef {
+  ...
+  (dc: DataConnect, vars: UpsertOpportunityVariables): MutationRef<UpsertOpportunityData, UpsertOpportunityVariables>;
+}
+export const upsertOpportunityRef: UpsertOpportunityRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertOpportunityRef:
+```typescript
+const name = upsertOpportunityRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertOpportunity` mutation requires an argument of type `UpsertOpportunityVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertOpportunityVariables {
+  noticeId: string;
+  title: string;
+  agency: string;
+  solicitationNumber?: string | null;
+  naicsCode?: string | null;
+  setAsideType?: string | null;
+  postedDate: TimestampString;
+  responseDeadline?: TimestampString | null;
+  estimatedValue?: number | null;
+  sourceUrl: string;
+}
+```
+### Return Type
+Recall that executing the `UpsertOpportunity` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertOpportunityData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertOpportunityData {
+  opportunity_upsert: Opportunity_Key;
+}
+```
+### Using `UpsertOpportunity`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertOpportunity, UpsertOpportunityVariables } from '@govcontract/dataconnect';
+
+// The `UpsertOpportunity` mutation requires an argument of type `UpsertOpportunityVariables`:
+const upsertOpportunityVars: UpsertOpportunityVariables = {
+  noticeId: ..., 
+  title: ..., 
+  agency: ..., 
+  solicitationNumber: ..., // optional
+  naicsCode: ..., // optional
+  setAsideType: ..., // optional
+  postedDate: ..., 
+  responseDeadline: ..., // optional
+  estimatedValue: ..., // optional
+  sourceUrl: ..., 
+};
+
+// Call the `upsertOpportunity()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertOpportunity(upsertOpportunityVars);
+// Variables can be defined inline as well.
+const { data } = await upsertOpportunity({ noticeId: ..., title: ..., agency: ..., solicitationNumber: ..., naicsCode: ..., setAsideType: ..., postedDate: ..., responseDeadline: ..., estimatedValue: ..., sourceUrl: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertOpportunity(dataConnect, upsertOpportunityVars);
+
+console.log(data.opportunity_upsert);
+
+// Or, you can use the `Promise` API.
+upsertOpportunity(upsertOpportunityVars).then((response) => {
+  const data = response.data;
+  console.log(data.opportunity_upsert);
+});
+```
+
+### Using `UpsertOpportunity`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertOpportunityRef, UpsertOpportunityVariables } from '@govcontract/dataconnect';
+
+// The `UpsertOpportunity` mutation requires an argument of type `UpsertOpportunityVariables`:
+const upsertOpportunityVars: UpsertOpportunityVariables = {
+  noticeId: ..., 
+  title: ..., 
+  agency: ..., 
+  solicitationNumber: ..., // optional
+  naicsCode: ..., // optional
+  setAsideType: ..., // optional
+  postedDate: ..., 
+  responseDeadline: ..., // optional
+  estimatedValue: ..., // optional
+  sourceUrl: ..., 
+};
+
+// Call the `upsertOpportunityRef()` function to get a reference to the mutation.
+const ref = upsertOpportunityRef(upsertOpportunityVars);
+// Variables can be defined inline as well.
+const ref = upsertOpportunityRef({ noticeId: ..., title: ..., agency: ..., solicitationNumber: ..., naicsCode: ..., setAsideType: ..., postedDate: ..., responseDeadline: ..., estimatedValue: ..., sourceUrl: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertOpportunityRef(dataConnect, upsertOpportunityVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.opportunity_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.opportunity_upsert);
+});
+```
+
+## UpsertBusinessProfile
+You can execute the `UpsertBusinessProfile` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+upsertBusinessProfile(vars: UpsertBusinessProfileVariables): MutationPromise<UpsertBusinessProfileData, UpsertBusinessProfileVariables>;
+
+interface UpsertBusinessProfileRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpsertBusinessProfileVariables): MutationRef<UpsertBusinessProfileData, UpsertBusinessProfileVariables>;
+}
+export const upsertBusinessProfileRef: UpsertBusinessProfileRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+upsertBusinessProfile(dc: DataConnect, vars: UpsertBusinessProfileVariables): MutationPromise<UpsertBusinessProfileData, UpsertBusinessProfileVariables>;
+
+interface UpsertBusinessProfileRef {
+  ...
+  (dc: DataConnect, vars: UpsertBusinessProfileVariables): MutationRef<UpsertBusinessProfileData, UpsertBusinessProfileVariables>;
+}
+export const upsertBusinessProfileRef: UpsertBusinessProfileRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the upsertBusinessProfileRef:
+```typescript
+const name = upsertBusinessProfileRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpsertBusinessProfile` mutation requires an argument of type `UpsertBusinessProfileVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpsertBusinessProfileVariables {
+  tenantId: UUIDString;
+  naicsCodes?: string[] | null;
+  setAsideTypes?: string[] | null;
+  minCapacity?: number | null;
+  maxCapacity?: number | null;
+}
+```
+### Return Type
+Recall that executing the `UpsertBusinessProfile` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpsertBusinessProfileData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpsertBusinessProfileData {
+  businessProfile_upsert: BusinessProfile_Key;
+}
+```
+### Using `UpsertBusinessProfile`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, upsertBusinessProfile, UpsertBusinessProfileVariables } from '@govcontract/dataconnect';
+
+// The `UpsertBusinessProfile` mutation requires an argument of type `UpsertBusinessProfileVariables`:
+const upsertBusinessProfileVars: UpsertBusinessProfileVariables = {
+  tenantId: ..., 
+  naicsCodes: ..., // optional
+  setAsideTypes: ..., // optional
+  minCapacity: ..., // optional
+  maxCapacity: ..., // optional
+};
+
+// Call the `upsertBusinessProfile()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await upsertBusinessProfile(upsertBusinessProfileVars);
+// Variables can be defined inline as well.
+const { data } = await upsertBusinessProfile({ tenantId: ..., naicsCodes: ..., setAsideTypes: ..., minCapacity: ..., maxCapacity: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await upsertBusinessProfile(dataConnect, upsertBusinessProfileVars);
+
+console.log(data.businessProfile_upsert);
+
+// Or, you can use the `Promise` API.
+upsertBusinessProfile(upsertBusinessProfileVars).then((response) => {
+  const data = response.data;
+  console.log(data.businessProfile_upsert);
+});
+```
+
+### Using `UpsertBusinessProfile`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, upsertBusinessProfileRef, UpsertBusinessProfileVariables } from '@govcontract/dataconnect';
+
+// The `UpsertBusinessProfile` mutation requires an argument of type `UpsertBusinessProfileVariables`:
+const upsertBusinessProfileVars: UpsertBusinessProfileVariables = {
+  tenantId: ..., 
+  naicsCodes: ..., // optional
+  setAsideTypes: ..., // optional
+  minCapacity: ..., // optional
+  maxCapacity: ..., // optional
+};
+
+// Call the `upsertBusinessProfileRef()` function to get a reference to the mutation.
+const ref = upsertBusinessProfileRef(upsertBusinessProfileVars);
+// Variables can be defined inline as well.
+const ref = upsertBusinessProfileRef({ tenantId: ..., naicsCodes: ..., setAsideTypes: ..., minCapacity: ..., maxCapacity: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = upsertBusinessProfileRef(dataConnect, upsertBusinessProfileVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.businessProfile_upsert);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.businessProfile_upsert);
+});
+```
+
+## UpdatePipelineApplicationStatus
+You can execute the `UpdatePipelineApplicationStatus` mutation using the following action shortcut function, or by calling `executeMutation()` after calling the following `MutationRef` function, both of which are defined in [dataconnect/index.d.ts](./index.d.ts):
+```typescript
+updatePipelineApplicationStatus(vars: UpdatePipelineApplicationStatusVariables): MutationPromise<UpdatePipelineApplicationStatusData, UpdatePipelineApplicationStatusVariables>;
+
+interface UpdatePipelineApplicationStatusRef {
+  ...
+  /* Allow users to create refs without passing in DataConnect */
+  (vars: UpdatePipelineApplicationStatusVariables): MutationRef<UpdatePipelineApplicationStatusData, UpdatePipelineApplicationStatusVariables>;
+}
+export const updatePipelineApplicationStatusRef: UpdatePipelineApplicationStatusRef;
+```
+You can also pass in a `DataConnect` instance to the action shortcut function or `MutationRef` function.
+```typescript
+updatePipelineApplicationStatus(dc: DataConnect, vars: UpdatePipelineApplicationStatusVariables): MutationPromise<UpdatePipelineApplicationStatusData, UpdatePipelineApplicationStatusVariables>;
+
+interface UpdatePipelineApplicationStatusRef {
+  ...
+  (dc: DataConnect, vars: UpdatePipelineApplicationStatusVariables): MutationRef<UpdatePipelineApplicationStatusData, UpdatePipelineApplicationStatusVariables>;
+}
+export const updatePipelineApplicationStatusRef: UpdatePipelineApplicationStatusRef;
+```
+
+If you need the name of the operation without creating a ref, you can retrieve the operation name by calling the `operationName` property on the updatePipelineApplicationStatusRef:
+```typescript
+const name = updatePipelineApplicationStatusRef.operationName;
+console.log(name);
+```
+
+### Variables
+The `UpdatePipelineApplicationStatus` mutation requires an argument of type `UpdatePipelineApplicationStatusVariables`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+
+```typescript
+export interface UpdatePipelineApplicationStatusVariables {
+  id: UUIDString;
+  status: string;
+}
+```
+### Return Type
+Recall that executing the `UpdatePipelineApplicationStatus` mutation returns a `MutationPromise` that resolves to an object with a `data` property.
+
+The `data` property is an object of type `UpdatePipelineApplicationStatusData`, which is defined in [dataconnect/index.d.ts](./index.d.ts). It has the following fields:
+```typescript
+export interface UpdatePipelineApplicationStatusData {
+  pipelineApplication_update?: PipelineApplication_Key | null;
+}
+```
+### Using `UpdatePipelineApplicationStatus`'s action shortcut function
+
+```typescript
+import { getDataConnect } from 'firebase/data-connect';
+import { connectorConfig, updatePipelineApplicationStatus, UpdatePipelineApplicationStatusVariables } from '@govcontract/dataconnect';
+
+// The `UpdatePipelineApplicationStatus` mutation requires an argument of type `UpdatePipelineApplicationStatusVariables`:
+const updatePipelineApplicationStatusVars: UpdatePipelineApplicationStatusVariables = {
+  id: ..., 
+  status: ..., 
+};
+
+// Call the `updatePipelineApplicationStatus()` function to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await updatePipelineApplicationStatus(updatePipelineApplicationStatusVars);
+// Variables can be defined inline as well.
+const { data } = await updatePipelineApplicationStatus({ id: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the action shortcut function.
+const dataConnect = getDataConnect(connectorConfig);
+const { data } = await updatePipelineApplicationStatus(dataConnect, updatePipelineApplicationStatusVars);
+
+console.log(data.pipelineApplication_update);
+
+// Or, you can use the `Promise` API.
+updatePipelineApplicationStatus(updatePipelineApplicationStatusVars).then((response) => {
+  const data = response.data;
+  console.log(data.pipelineApplication_update);
+});
+```
+
+### Using `UpdatePipelineApplicationStatus`'s `MutationRef` function
+
+```typescript
+import { getDataConnect, executeMutation } from 'firebase/data-connect';
+import { connectorConfig, updatePipelineApplicationStatusRef, UpdatePipelineApplicationStatusVariables } from '@govcontract/dataconnect';
+
+// The `UpdatePipelineApplicationStatus` mutation requires an argument of type `UpdatePipelineApplicationStatusVariables`:
+const updatePipelineApplicationStatusVars: UpdatePipelineApplicationStatusVariables = {
+  id: ..., 
+  status: ..., 
+};
+
+// Call the `updatePipelineApplicationStatusRef()` function to get a reference to the mutation.
+const ref = updatePipelineApplicationStatusRef(updatePipelineApplicationStatusVars);
+// Variables can be defined inline as well.
+const ref = updatePipelineApplicationStatusRef({ id: ..., status: ..., });
+
+// You can also pass in a `DataConnect` instance to the `MutationRef` function.
+const dataConnect = getDataConnect(connectorConfig);
+const ref = updatePipelineApplicationStatusRef(dataConnect, updatePipelineApplicationStatusVars);
+
+// Call `executeMutation()` on the reference to execute the mutation.
+// You can use the `await` keyword to wait for the promise to resolve.
+const { data } = await executeMutation(ref);
+
+console.log(data.pipelineApplication_update);
+
+// Or, you can use the `Promise` API.
+executeMutation(ref).then((response) => {
+  const data = response.data;
+  console.log(data.pipelineApplication_update);
 });
 ```
 

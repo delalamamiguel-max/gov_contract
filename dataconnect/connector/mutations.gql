@@ -1,7 +1,58 @@
-mutation CreatePipelineApplication($tenantId: UUID!, $opportunityId: UUID!, $status: String!) @auth(level: USER) {
+mutation CreatePipelineApplication($tenantId: UUID!, $opportunityId: String!, $status: String!) @auth(level: USER) {
   pipelineApplication_insert(data: {
     tenantId: $tenantId,
-    opportunityId: $opportunityId,
+    opportunityNoticeId: $opportunityId,
+    status: $status
+  })
+}
+
+mutation UpsertOpportunity(
+  $noticeId: String!,
+  $title: String!,
+  $agency: String!,
+  $solicitationNumber: String,
+  $naicsCode: String,
+  $setAsideType: String,
+  $postedDate: Timestamp!,
+  $responseDeadline: Timestamp,
+  $estimatedValue: Int,
+  $sourceUrl: String!
+) @auth(level: PUBLIC) {
+  opportunity_upsert(data: {
+    noticeId: $noticeId,
+    title: $title,
+    agency: $agency,
+    solicitationNumber: $solicitationNumber,
+    naicsCode: $naicsCode,
+    setAsideType: $setAsideType,
+    postedDate: $postedDate,
+    responseDeadline: $responseDeadline,
+    estimatedValue: $estimatedValue,
+    sourceUrl: $sourceUrl
+  })
+}
+
+mutation UpsertBusinessProfile(
+  $tenantId: UUID!,
+  $naicsCodes: [String!],
+  $setAsideTypes: [String!],
+  $minCapacity: Int,
+  $maxCapacity: Int
+) @auth(level: PUBLIC) {
+  businessProfile_upsert(data: {
+    tenantId: $tenantId,
+    naicsCodes: $naicsCodes,
+    setAsideTypes: $setAsideTypes,
+    minCapacity: $minCapacity,
+    maxCapacity: $maxCapacity
+  })
+}
+
+mutation UpdatePipelineApplicationStatus(
+  $id: UUID!,
+  $status: String!
+) @auth(level: PUBLIC) {
+  pipelineApplication_update(id: $id, data: {
     status: $status
   })
 }

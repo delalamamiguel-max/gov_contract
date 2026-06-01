@@ -1,6 +1,29 @@
-query ListOpportunities @auth(level: USER) {
+query ListOpportunities @auth(level: PUBLIC) {
   opportunities(orderBy: [{ postedDate: DESC }]) {
-    id
+    noticeId
+    title
+    agency
+    solicitationNumber
+    naicsCode
+    setAsideType
+    postedDate
+    responseDeadline
+    estimatedValue
+    sourceUrl
+  }
+}
+
+query SearchOpportunities($keyword: String) @auth(level: PUBLIC) {
+  opportunities(
+    where: {
+      _or: [
+        { title: { contains: $keyword } },
+        { agency: { contains: $keyword } },
+        { naicsCode: { contains: $keyword } }
+      ]
+    },
+    orderBy: [{ postedDate: DESC }]
+  ) {
     noticeId
     title
     agency
@@ -18,7 +41,7 @@ query ListPipelineApplications($tenantId: UUID!) @auth(level: USER) {
   pipelineApplications(where: {tenantId: {eq: $tenantId}}) {
     id
     opportunity {
-      id
+      noticeId
       title
       agency
       responseDeadline
