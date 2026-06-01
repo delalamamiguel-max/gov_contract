@@ -8,6 +8,7 @@ interface ContractRowProps {
     id: string | number;
     title: string;
     agency: string;
+    description?: string;
     value: string;
     fit: number;
     match: string;
@@ -34,7 +35,7 @@ export default function ContractRow({ opp }: ContractRowProps) {
     const isExpanding = !expanded;
     setExpanded(isExpanding);
 
-    if (isExpanding && fitScore === null && !isScoring) {
+          if (isExpanding && fitScore === null && !isScoring) {
       setIsScoring(true);
       try {
         const res = await fetch('/api/score', {
@@ -42,18 +43,23 @@ export default function ContractRow({ opp }: ContractRowProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contractTitle: opp.title,
-            contractDescription: 'This is a federal contract opportunity requiring specific expertise...',
+            contractDescription: opp.description || 'No description provided.',
             businessNaics: ['541511', '541512'],
             businessCapacities: 'Up to $5M'
           })
         });
         const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to evaluate fit.');
+        }
+        
         setFitScore(data.fitScore || 0);
         setAiSummary(data.matchSummary || 'Analysis failed.');
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
         setFitScore(0);
-        setAiSummary('Failed to evaluate contract fit.');
+        setAiSummary(`AI Evaluation Failed: ${err.message}. If you are on Vercel, please check if KIMI_API_KEY is set in your Environment Variables.`);
       } finally {
         setIsScoring(false);
       }
@@ -136,7 +142,7 @@ export default function ContractRow({ opp }: ContractRowProps) {
           <div>
             <h4 style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>Description</h4>
             <p style={{ fontSize: '0.95rem', lineHeight: '1.5' }}>
-              This is a mock description of the contract requirements. The vendor will be required to provide comprehensive services adhering to federal standards, maintaining security compliance, and delivering measurable milestones on a quarterly basis.
+              {opp.description || 'No description provided.'}
             </p>
           </div>
           

@@ -3,6 +3,7 @@ query ListOpportunities @auth(level: PUBLIC) {
     noticeId
     title
     agency
+    description
     solicitationNumber
     naicsCode
     setAsideType
@@ -27,6 +28,7 @@ query SearchOpportunities($keyword: String) @auth(level: PUBLIC) {
     noticeId
     title
     agency
+    description
     solicitationNumber
     naicsCode
     setAsideType

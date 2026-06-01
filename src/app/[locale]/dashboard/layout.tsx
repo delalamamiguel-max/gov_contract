@@ -4,9 +4,13 @@ import PaywallGuard from '@/components/PaywallGuard';
 
 export default function DashboardLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
+  params: { locale: string };
 }) {
+  const { locale } = params;
+
   return (
     <PaywallGuard>
       <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
@@ -32,7 +36,7 @@ export default function DashboardLayout({
           </div>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexGrow: 1 }}>
-            <Link href="/dashboard/search" style={{
+            <Link href={`/${locale}/dashboard/search`} style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
               borderRadius: '8px', color: 'var(--text-primary)', background: 'var(--surface-primary)',
               border: '1px solid var(--border-color)'
@@ -40,7 +44,7 @@ export default function DashboardLayout({
               <Search size={18} />
               <span style={{ fontWeight: 500 }}>Contract Search</span>
             </Link>
-            <Link href="/dashboard/pipeline" style={{
+            <Link href={`/${locale}/dashboard/pipeline`} style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
               borderRadius: '8px', color: 'var(--text-secondary)'
             }}>
@@ -50,7 +54,7 @@ export default function DashboardLayout({
           </nav>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            <Link href="/dashboard/settings" style={{
+            <Link href={`/${locale}/dashboard/settings`} style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
               borderRadius: '8px', color: 'var(--text-secondary)'
             }}>

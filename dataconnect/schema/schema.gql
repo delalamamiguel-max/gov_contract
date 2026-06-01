@@ -29,6 +29,7 @@ type Opportunity @table(key: "noticeId") {
   noticeId: String!
   title: String!
   agency: String!
+  description: String
   solicitationNumber: String
   naicsCode: String
   setAsideType: String

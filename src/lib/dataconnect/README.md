@@ -106,6 +106,7 @@ export interface ListOpportunitiesData {
     noticeId: string;
     title: string;
     agency: string;
+    description?: string | null;
     solicitationNumber?: string | null;
     naicsCode?: string | null;
     setAsideType?: string | null;
@@ -214,6 +215,7 @@ export interface SearchOpportunitiesData {
     noticeId: string;
     title: string;
     agency: string;
+    description?: string | null;
     solicitationNumber?: string | null;
     naicsCode?: string | null;
     setAsideType?: string | null;
@@ -691,6 +693,7 @@ export interface UpsertOpportunityVariables {
   noticeId: string;
   title: string;
   agency: string;
+  description?: string | null;
   solicitationNumber?: string | null;
   naicsCode?: string | null;
   setAsideType?: string | null;
@@ -720,6 +723,7 @@ const upsertOpportunityVars: UpsertOpportunityVariables = {
   noticeId: ..., 
   title: ..., 
   agency: ..., 
+  description: ..., // optional
   solicitationNumber: ..., // optional
   naicsCode: ..., // optional
   setAsideType: ..., // optional
@@ -733,7 +737,7 @@ const upsertOpportunityVars: UpsertOpportunityVariables = {
 // You can use the `await` keyword to wait for the promise to resolve.
 const { data } = await upsertOpportunity(upsertOpportunityVars);
 // Variables can be defined inline as well.
-const { data } = await upsertOpportunity({ noticeId: ..., title: ..., agency: ..., solicitationNumber: ..., naicsCode: ..., setAsideType: ..., postedDate: ..., responseDeadline: ..., estimatedValue: ..., sourceUrl: ..., });
+const { data } = await upsertOpportunity({ noticeId: ..., title: ..., agency: ..., description: ..., solicitationNumber: ..., naicsCode: ..., setAsideType: ..., postedDate: ..., responseDeadline: ..., estimatedValue: ..., sourceUrl: ..., });
 
 // You can also pass in a `DataConnect` instance to the action shortcut function.
 const dataConnect = getDataConnect(connectorConfig);
@@ -759,6 +763,7 @@ const upsertOpportunityVars: UpsertOpportunityVariables = {
   noticeId: ..., 
   title: ..., 
   agency: ..., 
+  description: ..., // optional
   solicitationNumber: ..., // optional
   naicsCode: ..., // optional
   setAsideType: ..., // optional
@@ -771,7 +776,7 @@ const upsertOpportunityVars: UpsertOpportunityVariables = {
 // Call the `upsertOpportunityRef()` function to get a reference to the mutation.
 const ref = upsertOpportunityRef(upsertOpportunityVars);
 // Variables can be defined inline as well.
-const ref = upsertOpportunityRef({ noticeId: ..., title: ..., agency: ..., solicitationNumber: ..., naicsCode: ..., setAsideType: ..., postedDate: ..., responseDeadline: ..., estimatedValue: ..., sourceUrl: ..., });
+const ref = upsertOpportunityRef({ noticeId: ..., title: ..., agency: ..., description: ..., solicitationNumber: ..., naicsCode: ..., setAsideType: ..., postedDate: ..., responseDeadline: ..., estimatedValue: ..., sourceUrl: ..., });
 
 // You can also pass in a `DataConnect` instance to the `MutationRef` function.
 const dataConnect = getDataConnect(connectorConfig);

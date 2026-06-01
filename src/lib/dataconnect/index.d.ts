@@ -42,6 +42,7 @@ export interface ListOpportunitiesData {
     noticeId: string;
     title: string;
     agency: string;
+    description?: string | null;
     solicitationNumber?: string | null;
     naicsCode?: string | null;
     setAsideType?: string | null;
@@ -86,6 +87,7 @@ export interface SearchOpportunitiesData {
     noticeId: string;
     title: string;
     agency: string;
+    description?: string | null;
     solicitationNumber?: string | null;
     naicsCode?: string | null;
     setAsideType?: string | null;
@@ -153,6 +155,7 @@ export interface UpsertOpportunityVariables {
   noticeId: string;
   title: string;
   agency: string;
+  description?: string | null;
   solicitationNumber?: string | null;
   naicsCode?: string | null;
   setAsideType?: string | null;

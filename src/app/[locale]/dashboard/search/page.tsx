@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic';
-import { Filter } from 'lucide-react';
 import { listOpportunities, searchOpportunities } from '@/lib/dataconnect';
 import ContractRow from '@/components/ContractRow';
 import SearchInput from '@/components/SearchInput';
+import FilterModal from '@/components/FilterModal';
 
 export default async function SearchPage({
   searchParams,
@@ -31,13 +31,17 @@ export default async function SearchPage({
     id: o.noticeId,
     title: o.title,
     agency: o.agency,
+    description: o.description || 'No description provided.',
     value: o.estimatedValue ? `$${(o.estimatedValue / 1000000).toFixed(1)}M` : 'TBD',
     fit: 85, // Mock fit score for now
-    match: 'Good Match'
+    match: 'Good Match',
+    naicsCode: o.naicsCode,
+    setAsideType: o.setAsideType,
+    responseDeadline: o.responseDeadline
   })) : query ? [] : [
-    { id: '1', title: 'Cloud Infrastructure Migration Support', agency: 'Department of Energy', value: '$3.2M', fit: 92, match: 'High Match' },
-    { id: '2', title: 'Cybersecurity Threat Analysis', agency: 'Department of Defense', value: '$1.5M', fit: 85, match: 'Good Match' },
-    { id: '3', title: 'Legacy System Maintenance', agency: 'Veterans Affairs', value: '$850K', fit: 64, match: 'Low Match' },
+    { id: '1', title: 'Cloud Infrastructure Migration Support', agency: 'Department of Energy', description: 'This is a mock description of the contract requirements. The vendor will be required to provide comprehensive services adhering to federal standards, maintaining security compliance, and delivering measurable milestones on a quarterly basis.', value: '$3.2M', fit: 92, match: 'High Match' },
+    { id: '2', title: 'Cybersecurity Threat Analysis', agency: 'Department of Defense', description: 'Perform advanced threat hunting and architecture review for legacy DoD assets.', value: '$1.5M', fit: 85, match: 'Good Match' },
+    { id: '3', title: 'Legacy System Maintenance', agency: 'Veterans Affairs', description: 'Maintain and transition a legacy on-premise mainframe system to a cloud-ready environment.', value: '$850K', fit: 64, match: 'Low Match' },
   ];
 
   return (
@@ -50,9 +54,7 @@ export default async function SearchPage({
       {/* Search Bar */}
       <div style={{ display: 'flex', gap: '1rem' }}>
         <SearchInput />
-        <button className="btn btn-secondary" style={{ padding: '0 1.5rem', borderRadius: '12px' }}>
-          <Filter size={18} /> Filters
-        </button>
+        <FilterModal />
       </div>
 
       {/* Results */}

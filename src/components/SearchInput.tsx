@@ -1,7 +1,7 @@
 'use client';
 
 import { Search as SearchIcon } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
 export default function SearchInput() {
@@ -10,14 +10,18 @@ export default function SearchInput() {
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [isPending, startTransition] = useTransition();
 
+  const params = useParams();
+  const locale = params.locale || 'en';
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     startTransition(() => {
       if (query.trim()) {
-        router.push(`?q=${encodeURIComponent(query)}`);
+        router.push(`/${locale}/dashboard/search?q=${encodeURIComponent(query)}`);
       } else {
-        router.push('?');
+        router.push(`/${locale}/dashboard/search`);
       }
+      router.refresh(); // Force server component to refetch
     });
   };
 
