@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import '@/lib/firebase';
 import { NextResponse } from 'next/server';
 import { generateFitScore } from '@/lib/ai';
 import { getTenant, updateTenantTokens } from '@/lib/dataconnect';

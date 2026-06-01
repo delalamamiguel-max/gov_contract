@@ -1,5 +1,7 @@
+import '@/lib/firebase';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { updateTenantProStatus } from '@/lib/dataconnect';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'dummy_key_to_bypass_build');
 
