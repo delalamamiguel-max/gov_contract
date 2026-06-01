@@ -7,9 +7,10 @@ import FilterModal from '@/components/FilterModal';
 export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
-  const query = typeof searchParams.q === 'string' ? searchParams.q : '';
+  const resolvedParams = await searchParams;
+  const query = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
 
   let opportunities: any[] = [];
   try {

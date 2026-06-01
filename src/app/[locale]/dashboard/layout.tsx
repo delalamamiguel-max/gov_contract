@@ -2,14 +2,14 @@ import { Shield, Search, LayoutDashboard, Settings, LogOut } from 'lucide-react'
 import Link from 'next/link';
 import PaywallGuard from '@/components/PaywallGuard';
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
   params,
 }: {
   children: React.ReactNode;
-  params: { locale: string };
+  params: Promise<{ locale: string }>;
 }) {
-  const { locale } = params;
+  const { locale } = await params;
 
   return (
     <PaywallGuard>
