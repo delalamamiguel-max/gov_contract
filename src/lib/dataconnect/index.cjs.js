@@ -1,0 +1,52 @@
+const { queryRef, executeQuery, validateArgsWithOptions, mutationRef, executeMutation, validateArgs } = require('firebase/data-connect');
+
+const connectorConfig = {
+  connector: 'default',
+  service: 'govcontract-app',
+  location: 'us-central1'
+};
+exports.connectorConfig = connectorConfig;
+
+const createPipelineApplicationRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return mutationRef(dcInstance, 'CreatePipelineApplication', inputVars);
+}
+createPipelineApplicationRef.operationName = 'CreatePipelineApplication';
+exports.createPipelineApplicationRef = createPipelineApplicationRef;
+
+exports.createPipelineApplication = function createPipelineApplication(dcOrVars, vars) {
+  const { dc: dcInstance, vars: inputVars } = validateArgs(connectorConfig, dcOrVars, vars, true);
+  return executeMutation(createPipelineApplicationRef(dcInstance, inputVars));
+}
+;
+
+const listOpportunitiesRef = (dc) => {
+  const { dc: dcInstance} = validateArgs(connectorConfig, dc, undefined);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListOpportunities');
+}
+listOpportunitiesRef.operationName = 'ListOpportunities';
+exports.listOpportunitiesRef = listOpportunitiesRef;
+
+exports.listOpportunities = function listOpportunities(dcOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrOptions, options, undefined,false, false);
+  return executeQuery(listOpportunitiesRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;
+
+const listPipelineApplicationsRef = (dcOrVars, vars) => {
+  const { dc: dcInstance, vars: inputVars} = validateArgs(connectorConfig, dcOrVars, vars, true);
+  dcInstance._useGeneratedSdk();
+  return queryRef(dcInstance, 'ListPipelineApplications', inputVars);
+}
+listPipelineApplicationsRef.operationName = 'ListPipelineApplications';
+exports.listPipelineApplicationsRef = listPipelineApplicationsRef;
+
+exports.listPipelineApplications = function listPipelineApplications(dcOrVars, varsOrOptions, options) {
+  
+  const { dc: dcInstance, vars: inputVars, options: inputOpts } = validateArgsWithOptions(connectorConfig, dcOrVars, varsOrOptions, options, true, true);
+  return executeQuery(listPipelineApplicationsRef(dcInstance, inputVars), inputOpts && { fetchPolicy: inputOpts.fetchPolicy });
+}
+;

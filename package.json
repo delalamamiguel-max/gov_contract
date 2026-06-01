@@ -9,14 +9,22 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "firebase": "^12.14.0",
+    "firebase-admin": "^13.10.0",
+    "lucide-react": "^1.17.0",
     "next": "16.2.6",
+    "next-intl": "^4.13.0",
+    "ollama": "^0.6.3",
+    "playwright": "^1.60.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "stripe": "^22.2.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "typescript": "^5"

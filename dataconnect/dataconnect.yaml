@@ -1,0 +1,11 @@
+specVersion: "v1alpha"
+serviceId: "govcontract-app"
+location: "us-central1"
+schema:
+  source: "./schema"
+  datasource:
+    postgresql:
+      database: "govcontract_db"
+      cloudSql:
+        instanceId: "govcontract-sql-instance"
+connectorDirs: ["./connector"]

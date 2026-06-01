@@ -1,0 +1,49 @@
+type User @table(key: "uid") {
+  uid: String! @default(expr: "auth.uid")
+  email: String! @unique
+  role: String! 
+  tenantId: UUID!
+}
+
+type Tenant @table {
+  id: UUID! @default(expr: "uuidV4()")
+  name: String!
+  createdAt: Timestamp! @default(expr: "request.time")
+  subscriptionStatus: String! 
+  tokensRemaining: Int! @default(value: 3)
+}
+
+type BusinessProfile @table {
+  id: UUID! @default(expr: "uuidV4()")
+  tenantId: UUID! @unique
+  naicsCodes: [String!]
+  setAsideTypes: [String!]
+  serviceStates: [String!]
+  minCapacity: Int
+  maxCapacity: Int
+}
+
+type Opportunity @table {
+  id: UUID! @default(expr: "uuidV4()")
+  noticeId: String! @unique
+  title: String!
+  agency: String!
+  solicitationNumber: String
+  naicsCode: String
+  setAsideType: String
+  postedDate: Timestamp!
+  responseDeadline: Timestamp
+  estimatedValue: Int
+  sourceUrl: String!
+  isArchived: Boolean! @default(value: false)
+}
+
+type PipelineApplication @table {
+  id: UUID! @default(expr: "uuidV4()")
+  tenantId: UUID!
+  opportunity: Opportunity!
+  status: String! 
+  fitScore: Int
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time")
+}

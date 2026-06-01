@@ -1,0 +1,9 @@
+{
+  "dataconnect": {
+    "source": "dataconnect"
+  },
+  "apphosting": {
+    "source": ".",
+    "region": "us-central1"
+  }
+}

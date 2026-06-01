@@ -1,0 +1,7 @@
+mutation CreatePipelineApplication($tenantId: UUID!, $opportunityId: UUID!, $status: String!) @auth(level: USER) {
+  pipelineApplication_insert(data: {
+    tenantId: $tenantId,
+    opportunityId: $opportunityId,
+    status: $status
+  })
+}

@@ -1,0 +1,30 @@
+query ListOpportunities @auth(level: USER) {
+  opportunities(orderBy: [{ postedDate: DESC }]) {
+    id
+    noticeId
+    title
+    agency
+    solicitationNumber
+    naicsCode
+    setAsideType
+    postedDate
+    responseDeadline
+    estimatedValue
+    sourceUrl
+  }
+}
+
+query ListPipelineApplications($tenantId: UUID!) @auth(level: USER) {
+  pipelineApplications(where: {tenantId: {eq: $tenantId}}) {
+    id
+    opportunity {
+      id
+      title
+      agency
+      responseDeadline
+    }
+    status
+    fitScore
+    createdAt
+  }
+}
