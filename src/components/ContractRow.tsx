@@ -11,6 +11,9 @@ interface ContractRowProps {
     value: string;
     fit: number;
     match: string;
+    naicsCode?: string;
+    setAsideType?: string;
+    responseDeadline?: string | number | Date;
   };
 }
 
