@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
 
-// Initialize the OpenAI client pointing to the Moonshot API
+// Initialize the OpenAI client pointing to any OpenAI-compatible API
 const openai = new OpenAI({
   apiKey: process.env.KIMI_API_KEY || 'dummy_key',
-  baseURL: 'https://api.moonshot.cn/v1',
+  baseURL: process.env.AI_BASE_URL || 'https://api.moonshot.cn/v1',
 });
 
 interface FitScoreResult {
@@ -38,7 +38,7 @@ export async function generateFitScore(
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'moonshot-v1-8k', 
+      model: process.env.AI_MODEL || 'moonshot-v1-8k', 
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
       response_format: { type: 'json_object' }
