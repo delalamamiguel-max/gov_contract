@@ -1,9 +1,9 @@
 import OpenAI from 'openai';
 
-// Initialize the OpenAI client pointing to the Ollama OpenAI-compatible API
+// Initialize the OpenAI client pointing to the Moonshot API
 const openai = new OpenAI({
-  apiKey: process.env.KIMI_API_KEY || 'ollama', // Ollama doesn't strictly require an API key by default
-  baseURL: process.env.OLLAMA_BASE_URL || 'http://localhost:11434/v1',
+  apiKey: process.env.KIMI_API_KEY || 'dummy_key',
+  baseURL: 'https://api.moonshot.cn/v1',
 });
 
 interface FitScoreResult {
@@ -38,7 +38,7 @@ export async function generateFitScore(
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'kimi-k2.6:cloud', 
+      model: 'moonshot-v1-8k', 
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.2,
       response_format: { type: 'json_object' }
