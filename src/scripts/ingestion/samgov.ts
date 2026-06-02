@@ -4,6 +4,14 @@
 const SAM_API_BASE = 'https://api.sam.gov/opportunities/v2/search';
 const SAM_REQUEST_TIMEOUT_MS = 15_000;
 
+/** Format a Date as MM/dd/yyyy — required by SAM.gov API */
+function formatSamDate(date: Date): string {
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
 export async function fetchSamGovOpportunities() {
   console.log('[SAM.gov Ingest] Starting data ingestion...');
   const API_KEY = process.env.SAM_GOV_API_KEY;
@@ -22,9 +30,15 @@ export async function fetchSamGovOpportunities() {
   const timeoutId = setTimeout(() => controller.abort(), SAM_REQUEST_TIMEOUT_MS);
 
   try {
+    const now = new Date();
+    const sixMonthsAgo = new Date(now);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
     const url = new URL(SAM_API_BASE);
     url.searchParams.set('api_key', API_KEY);
     url.searchParams.set('limit', '20');
+    url.searchParams.set('postedFrom', formatSamDate(sixMonthsAgo));
+    url.searchParams.set('postedTo', formatSamDate(now));
     url.searchParams.set('ptype', 'o,p');
 
     console.log('[SAM.gov Ingest] Fetching live contracts...');

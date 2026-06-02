@@ -7,6 +7,14 @@ import { upsertOpportunity } from '@/lib/dataconnect';
 const SAM_API_BASE = 'https://api.sam.gov/opportunities/v2/search';
 const SAM_REQUEST_TIMEOUT_MS = 15_000;
 
+/** Format a Date as MM/dd/yyyy — required by SAM.gov API */
+function formatSamDate(date: Date): string {
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
 // Utility to parse SAM.gov dates (YYYY-MM-DD or MM/DD/YYYY) to ISO Timestamp strings
 function parseDateString(dateStr?: string) {
   if (!dateStr) return undefined;
@@ -31,9 +39,15 @@ export async function GET(request: Request) {
     }
 
     // 2. Fetch the latest opportunities from SAM.gov
+    const now = new Date();
+    const sixMonthsAgo = new Date(now);
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
     const url = new URL(SAM_API_BASE);
     url.searchParams.set('api_key', apiKey);
     url.searchParams.set('limit', '50');
+    url.searchParams.set('postedFrom', formatSamDate(sixMonthsAgo));
+    url.searchParams.set('postedTo', formatSamDate(now));
     url.searchParams.set('ptype', 'o,p');
 
     console.log('[Sync] Fetching SAM.gov opportunities...');

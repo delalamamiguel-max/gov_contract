@@ -5,6 +5,14 @@
 const SAM_API_BASE = 'https://api.sam.gov/opportunities/v2/search';
 const SAM_REQUEST_TIMEOUT_MS = 12_000; // 12 seconds — well within Vercel's function timeout
 
+/** Format a Date as MM/dd/yyyy — required by SAM.gov API */
+function formatSamDate(date: Date): string {
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const yyyy = date.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
 export interface SamGovOpportunity {
   noticeId: string;
   title: string;
@@ -34,11 +42,17 @@ export async function searchSamGovLive(keyword: string): Promise<SamGovOpportuni
     return [];
   }
 
-  // Build URL with params — SAM.gov v2 requires api_key as a query parameter
+  // Build URL with params — SAM.gov v2 requires api_key, postedFrom, postedTo, and limit
+  const now = new Date();
+  const twelveMonthsAgo = new Date(now);
+  twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1);
+
   const url = new URL(SAM_API_BASE);
   url.searchParams.set('api_key', apiKey);
   url.searchParams.set('keyword', keyword);
   url.searchParams.set('limit', '25');
+  url.searchParams.set('postedFrom', formatSamDate(twelveMonthsAgo));
+  url.searchParams.set('postedTo', formatSamDate(now));
   url.searchParams.set('ptype', 'o,p'); // opportunities + presolicitations
 
   // AbortController for timeout
