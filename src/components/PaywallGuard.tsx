@@ -1,5 +1,6 @@
 'use client';
 
+import '@/lib/firebase';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getTenant } from '@/lib/dataconnect';
