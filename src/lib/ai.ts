@@ -49,11 +49,11 @@ export async function generateFitScore(
       fitScore: parsed.fitScore || 0,
       matchSummary: parsed.matchSummary || "Analysis failed.",
     };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Cloud AI API error:', error);
     return {
       fitScore: 0,
-      matchSummary: 'Failed to generate fit score. Please verify your Kimi API Key is valid.',
+      matchSummary: `AI Error: ${error.message || 'Unknown error occurred'}`,
     };
   }
 }
