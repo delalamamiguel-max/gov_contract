@@ -22,14 +22,17 @@ export default async function SearchPage({
 
   let opportunities: any[] = [];
   let searchSource: 'sam.gov' | 'database' | 'none' = 'none';
+  let searchError: string | undefined;
 
   if (query) {
     // --- Active search: SAM.gov live is primary, Data Connect is fallback ---
     try {
-      const samResults = await searchSamGovLive(query);
-      if (samResults.length > 0) {
-        opportunities = samResults;
+      const samResult = await searchSamGovLive(query);
+      if (samResult.results.length > 0) {
+        opportunities = samResult.results;
         searchSource = 'sam.gov';
+      } else if (samResult.error) {
+        searchError = samResult.error;
       }
     } catch (error) {
       console.error('[Search] SAM.gov live search failed:', error);
@@ -97,6 +100,19 @@ export default async function SearchPage({
           {searchSource === 'sam.gov'
             ? `${displayData.length} live results from SAM.gov`
             : `${displayData.length} results from local database`}
+        </div>
+      )}
+
+      {/* Error Banner */}
+      {searchError && (
+        <div style={{
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          borderRadius: '8px', padding: '0.75rem 1rem',
+          fontSize: '0.9rem', color: '#f59e0b',
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+        }}>
+          <span>&#9888;</span> {searchError}
         </div>
       )}
 

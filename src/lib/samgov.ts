@@ -27,19 +27,24 @@ export interface SamGovOpportunity {
   sourceUrl: string;
 }
 
+export interface SamGovSearchResult {
+  results: SamGovOpportunity[];
+  error?: string;
+}
+
 /**
  * Search SAM.gov API v2 for contract opportunities matching a keyword.
- * Returns mapped results ready for display. Returns empty array on any failure.
+ * Returns mapped results ready for display. Returns empty results with optional error message.
  *
  * This runs server-side only (in server components or API routes).
  * The API key is never exposed to the client.
  */
-export async function searchSamGovLive(keyword: string): Promise<SamGovOpportunity[]> {
+export async function searchSamGovLive(keyword: string): Promise<SamGovSearchResult> {
   const apiKey = process.env.SAM_GOV_API_KEY;
 
   if (!apiKey) {
     console.error('[SAM.gov Search] SAM_GOV_API_KEY is not configured. Cannot perform live search.');
-    return [];
+    return { results: [], error: 'API key not configured.' };
   }
 
   // Build URL with params — SAM.gov v2 requires api_key, postedFrom, postedTo, and limit
@@ -71,20 +76,25 @@ export async function searchSamGovLive(keyword: string): Promise<SamGovOpportuni
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      const errorBody = await response.text().catch(() => '');
       console.error(`[SAM.gov Search] API returned ${response.status}: ${response.statusText}`);
-      return [];
+
+      if (response.status === 429) {
+        return { results: [], error: 'SAM.gov API rate limit exceeded. The daily quota resets at midnight UTC.' };
+      }
+      return { results: [], error: `SAM.gov returned HTTP ${response.status}` };
     }
 
     const data = await response.json();
 
     if (!data.opportunitiesData || !Array.isArray(data.opportunitiesData)) {
       console.warn('[SAM.gov Search] Response missing opportunitiesData array.');
-      return [];
+      return { results: [] };
     }
 
     console.log(`[SAM.gov Search] Found ${data.opportunitiesData.length} results for "${keyword}"`);
 
-    return data.opportunitiesData.map((opp: Record<string, unknown>): SamGovOpportunity => ({
+    return { results: data.opportunitiesData.map((opp: Record<string, unknown>): SamGovOpportunity => ({
       noticeId: (opp.noticeId as string) || `SAM-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       title: (opp.title as string) || 'Untitled Opportunity',
       agency: (opp.fullParentPathName as string) || (opp.department as string) || 'Unknown Agency',
@@ -98,16 +108,16 @@ export async function searchSamGovLive(keyword: string): Promise<SamGovOpportuni
       responseDeadline: opp.responseDeadLine ? new Date(opp.responseDeadLine as string).toISOString() : null,
       estimatedValue: null, // SAM.gov search results typically don't include estimated value
       sourceUrl: (opp.uiLink as string) || `https://sam.gov/opp/${opp.noticeId}/view`,
-    }));
+    })) };
   } catch (error: unknown) {
     clearTimeout(timeoutId);
 
     if (error instanceof Error && error.name === 'AbortError') {
       console.error(`[SAM.gov Search] Request timed out after ${SAM_REQUEST_TIMEOUT_MS}ms`);
-    } else {
-      console.error('[SAM.gov Search] Unexpected error:', error instanceof Error ? error.message : error);
+      return { results: [], error: 'SAM.gov request timed out. Please try again.' };
     }
 
-    return [];
+    console.error('[SAM.gov Search] Unexpected error:', error instanceof Error ? error.message : error);
+    return { results: [], error: 'Failed to reach SAM.gov. Please try again later.' };
   }
 }
