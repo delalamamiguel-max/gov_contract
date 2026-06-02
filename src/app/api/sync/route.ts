@@ -4,6 +4,9 @@ import '@/lib/firebase';
 import { NextResponse } from 'next/server';
 import { upsertOpportunity } from '@/lib/dataconnect';
 
+const SAM_API_BASE = 'https://api.sam.gov/opportunities/v2/search';
+const SAM_REQUEST_TIMEOUT_MS = 15_000;
+
 // Utility to parse SAM.gov dates (YYYY-MM-DD or MM/DD/YYYY) to ISO Timestamp strings
 function parseDateString(dateStr?: string) {
   if (!dateStr) return undefined;
@@ -17,41 +20,56 @@ function parseDateString(dateStr?: string) {
 
 export async function GET(request: Request) {
   try {
-    // 1. Verify API Key exists
-    const apiKey = process.env.SAM_API_KEY;
+    // 1. Verify API Key exists — standardized to SAM_GOV_API_KEY
+    const apiKey = process.env.SAM_GOV_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: 'SAM_API_KEY is not configured in environment variables.' }, { status: 500 });
+      console.error('[Sync] SAM_GOV_API_KEY is not configured.');
+      return NextResponse.json(
+        { error: 'SAM_GOV_API_KEY is not configured in environment variables.' },
+        { status: 500 }
+      );
     }
 
-    // 2. Fetch the latest opportunities from SAM.gov (e.g. limit to 50 for testing/syncing)
-    // In a real production app, this would use 'postedFrom' and 'postedTo' based on the last sync date.
-    // We will just fetch the latest 50 results for the MVP.
-    const samUrl = `https://api.sam.gov/opportunities/v2/search?api_key=${apiKey}&limit=50&ptype=o,p`;
-    
-    console.log('Fetching SAM.gov opportunities:', samUrl);
-    
-    const response = await fetch(samUrl, {
+    // 2. Fetch the latest opportunities from SAM.gov
+    const url = new URL(SAM_API_BASE);
+    url.searchParams.set('api_key', apiKey);
+    url.searchParams.set('limit', '50');
+    url.searchParams.set('ptype', 'o,p');
+
+    console.log('[Sync] Fetching SAM.gov opportunities...');
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), SAM_REQUEST_TIMEOUT_MS);
+
+    const response = await fetch(url.toString(), {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('SAM API Error:', errorText);
-      return NextResponse.json({ error: 'Failed to fetch from SAM.gov', details: errorText }, { status: response.status });
+      console.error(`[Sync] SAM.gov API returned ${response.status}: ${errorText.slice(0, 200)}`);
+      return NextResponse.json(
+        { error: 'Failed to fetch from SAM.gov', status: response.status },
+        { status: response.status }
+      );
     }
 
     const data = await response.json();
-    
+
     if (!data.opportunitiesData || !Array.isArray(data.opportunitiesData)) {
+      console.error('[Sync] Unexpected SAM.gov response format — missing opportunitiesData array.');
       return NextResponse.json({ error: 'Invalid response format from SAM.gov' }, { status: 500 });
     }
 
     const opportunities = data.opportunitiesData;
     let successCount = 0;
     let failureCount = 0;
+
+    console.log(`[Sync] Received ${opportunities.length} opportunities. Starting upsert...`);
 
     // 3. Sync each opportunity into Firebase Data Connect
     for (const opp of opportunities) {
@@ -69,16 +87,18 @@ export async function GET(request: Request) {
           setAsideType: opp.typeOfSetAsideDescription || opp.typeOfSetAside || 'None',
           postedDate: parseDateString(opp.postedDate) || new Date().toISOString(),
           responseDeadline: parseDateString(opp.responseDeadLine),
-          estimatedValue: 0, // SAM doesn't typically provide this in search
+          estimatedValue: 0,
           sourceUrl: opp.uiLink || `https://sam.gov/opp/${noticeId}/view`
         });
-        
+
         successCount++;
       } catch (err) {
-        console.error(`Failed to upsert opportunity ${opp.noticeId}:`, err);
+        console.error(`[Sync] Failed to upsert opportunity ${opp.noticeId}:`, err instanceof Error ? err.message : err);
         failureCount++;
       }
     }
+
+    console.log(`[Sync] Complete. Success: ${successCount}, Failed: ${failureCount}`);
 
     return NextResponse.json({
       message: 'Sync completed successfully',
@@ -87,8 +107,12 @@ export async function GET(request: Request) {
       failureCount
     });
 
-  } catch (error: any) {
-    console.error('Sync Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('[Sync] SAM.gov request timed out.');
+      return NextResponse.json({ error: 'SAM.gov request timed out' }, { status: 504 });
+    }
+    console.error('[Sync] Unexpected error:', error instanceof Error ? error.message : error);
+    return NextResponse.json({ error: 'Internal sync error' }, { status: 500 });
   }
 }

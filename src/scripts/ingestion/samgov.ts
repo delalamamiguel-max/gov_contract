@@ -1,53 +1,78 @@
 // SAM.gov API Ingestion Script
 // API Documentation: https://open.gsa.gov/api/sam/
 
+const SAM_API_BASE = 'https://api.sam.gov/opportunities/v2/search';
+const SAM_REQUEST_TIMEOUT_MS = 15_000;
+
 export async function fetchSamGovOpportunities() {
-  console.log('[SAM.gov] Starting data ingestion...');
+  console.log('[SAM.gov Ingest] Starting data ingestion...');
   const API_KEY = process.env.SAM_GOV_API_KEY;
-  
+
   if (!API_KEY || API_KEY === 'API_KEY') {
-    console.warn('[SAM.gov] Missing or invalid SAM_GOV_API_KEY. Injecting realistic mock contracts for development testing.');
-    return generateMockContracts();
+    // In development, return mock data for testing. In production, return empty.
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('[SAM.gov Ingest] Missing SAM_GOV_API_KEY — returning mock data for local development.');
+      return generateMockContracts();
+    }
+    console.error('[SAM.gov Ingest] SAM_GOV_API_KEY is not configured. Returning empty results (not mock data).');
+    return [];
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SAM_REQUEST_TIMEOUT_MS);
+
   try {
-    // We are fetching contracts from the last 7 days to keep the pipeline fresh
-    const dateLimit = new Date();
-    dateLimit.setDate(dateLimit.getDate() - 7);
-    const postedFrom = dateLimit.toISOString().split('T')[0].replace(/-/g, '/'); // format MM/DD/YYYY for SAM API? Wait, SAM uses MM/DD/YYYY
-    // Actually SAM API usually requires standard dates, we will just use a generic search for demonstration
-    
-    console.log('[SAM.gov] Fetching live contracts from open.gsa.gov...');
-    const response = await fetch(`https://api.sam.gov/opportunities/v2/search?api_key=${API_KEY}&limit=20&postedFrom=01/01/2026&postedTo=12/31/2026`);
-    
+    const url = new URL(SAM_API_BASE);
+    url.searchParams.set('api_key', API_KEY);
+    url.searchParams.set('limit', '20');
+    url.searchParams.set('ptype', 'o,p');
+
+    console.log('[SAM.gov Ingest] Fetching live contracts...');
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
-      console.error(`[SAM.gov] Live API failed: ${response.status} ${response.statusText}. Falling back to mock data.`);
-      return generateMockContracts();
+      console.error(`[SAM.gov Ingest] API returned ${response.status}: ${response.statusText}`);
+      // Do NOT fall back to mock data — return empty to avoid polluting the database
+      return [];
     }
 
     const data = await response.json();
-    
-    if (!data.opportunitiesData) {
-      console.warn('[SAM.gov] No opportunitiesData found in response. Returning mock data.');
-      return generateMockContracts();
+
+    if (!data.opportunitiesData || !Array.isArray(data.opportunitiesData)) {
+      console.warn('[SAM.gov Ingest] Response missing opportunitiesData array.');
+      return [];
     }
 
+    console.log(`[SAM.gov Ingest] Received ${data.opportunitiesData.length} live contracts.`);
+
     return data.opportunitiesData.map((opp: any) => ({
-      noticeId: opp.noticeId || `SAM-${Math.random().toString(36).substring(7)}`,
+      noticeId: opp.noticeId || `SAM-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       title: opp.title || 'Untitled Opportunity',
-      agency: opp.department || 'Unknown Agency',
+      agency: opp.fullParentPathName || opp.department || 'Unknown Agency',
       solicitationNumber: opp.solicitationNumber || null,
-      naicsCode: opp.naicsCode || null,
+      naicsCode: Array.isArray(opp.naicsCodes) ? opp.naicsCodes[0] : (opp.naicsCode || null),
       setAsideType: opp.typeOfSetAsideDescription || 'None',
-      postedDate: new Date(opp.postedDate).toISOString(),
-      responseDeadline: opp.responseDeadLine ? new Date(opp.responseDeadLine).toISOString() : new Date(Date.now() + 86400000 * 30).toISOString(),
-      estimatedValue: Math.floor(Math.random() * 5000000) + 100000, // SAM API often doesn't give value directly
+      postedDate: opp.postedDate ? new Date(opp.postedDate).toISOString() : new Date().toISOString(),
+      responseDeadline: opp.responseDeadLine ? new Date(opp.responseDeadLine).toISOString() : null,
+      estimatedValue: null,
       sourceUrl: opp.uiLink || `https://sam.gov/opp/${opp.noticeId}/view`
     }));
 
-  } catch (error) {
-    console.error('[SAM.gov] Error during API fetch:', error);
-    return generateMockContracts();
+  } catch (error: unknown) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.error('[SAM.gov Ingest] Request timed out.');
+    } else {
+      console.error('[SAM.gov Ingest] Error during fetch:', error instanceof Error ? error.message : error);
+    }
+    // Do NOT fall back to mock data — return empty
+    return [];
   }
 }
 

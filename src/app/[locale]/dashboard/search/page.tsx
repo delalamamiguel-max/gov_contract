@@ -1,8 +1,16 @@
 export const dynamic = 'force-dynamic';
 import { listOpportunities, searchOpportunities } from '@/lib/dataconnect';
+import { searchSamGovLive } from '@/lib/samgov';
 import ContractRow from '@/components/ContractRow';
 import SearchInput from '@/components/SearchInput';
 import FilterModal from '@/components/FilterModal';
+
+function formatContractValue(value: number | null | undefined): string {
+  if (!value) return 'TBD';
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
+  return `$${value.toLocaleString()}`;
+}
 
 export default async function SearchPage({
   searchParams,
@@ -13,37 +21,55 @@ export default async function SearchPage({
   const query = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
 
   let opportunities: any[] = [];
-  try {
-    if (query) {
-      // Execute the parameterized Live Data Connect Search
-      const response = await searchOpportunities({ keyword: query });
-      opportunities = response.data.opportunities;
-    } else {
-      // Execute standard list
+  let searchSource: 'sam.gov' | 'database' | 'none' = 'none';
+
+  if (query) {
+    // --- Active search: SAM.gov live is primary, Data Connect is fallback ---
+    try {
+      const samResults = await searchSamGovLive(query);
+      if (samResults.length > 0) {
+        opportunities = samResults;
+        searchSource = 'sam.gov';
+      }
+    } catch (error) {
+      console.error('[Search] SAM.gov live search failed:', error);
+    }
+
+    // Fallback to local database if SAM.gov returned nothing
+    if (opportunities.length === 0) {
+      try {
+        const response = await searchOpportunities({ keyword: query });
+        opportunities = response.data.opportunities;
+        if (opportunities.length > 0) searchSource = 'database';
+      } catch (error) {
+        console.error('[Search] Data Connect search also failed:', error);
+      }
+    }
+  } else {
+    // --- Browse mode: list from local database ---
+    try {
       const response = await listOpportunities();
       opportunities = response.data.opportunities;
+      if (opportunities.length > 0) searchSource = 'database';
+    } catch (error) {
+      console.error('[Search] Failed to list opportunities from Data Connect:', error);
     }
-  } catch (error) {
-    console.error('Failed to fetch opportunities from Data Connect', error);
   }
 
-  // Fallback to mock data for visual testing if DB is empty and no query is active
-  const displayData = opportunities.length > 0 ? opportunities.map(o => ({
+  // Map results to display format
+  const displayData = opportunities.map(o => ({
     id: o.noticeId,
     title: o.title,
     agency: o.agency,
     description: o.description || 'No description provided.',
-    value: o.estimatedValue ? `$${(o.estimatedValue / 1000000).toFixed(1)}M` : 'TBD',
-    fit: 85, // Mock fit score for now
-    match: 'Good Match',
+    value: formatContractValue(o.estimatedValue),
+    fit: 0, // Real fit score is generated on-demand via AI when user expands
+    match: 'Expand to score',
     naicsCode: o.naicsCode,
     setAsideType: o.setAsideType,
-    responseDeadline: o.responseDeadline
-  })) : query ? [] : [
-    { id: '1', title: 'Cloud Infrastructure Migration Support', agency: 'Department of Energy', description: 'This is a mock description of the contract requirements. The vendor will be required to provide comprehensive services adhering to federal standards, maintaining security compliance, and delivering measurable milestones on a quarterly basis.', value: '$3.2M', fit: 92, match: 'High Match' },
-    { id: '2', title: 'Cybersecurity Threat Analysis', agency: 'Department of Defense', description: 'Perform advanced threat hunting and architecture review for legacy DoD assets.', value: '$1.5M', fit: 85, match: 'Good Match' },
-    { id: '3', title: 'Legacy System Maintenance', agency: 'Veterans Affairs', description: 'Maintain and transition a legacy on-premise mainframe system to a cloud-ready environment.', value: '$850K', fit: 64, match: 'Low Match' },
-  ];
+    responseDeadline: o.responseDeadline,
+    sourceUrl: o.sourceUrl,
+  }));
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -58,11 +84,44 @@ export default async function SearchPage({
         <FilterModal />
       </div>
 
+      {/* Source Indicator */}
+      {query && displayData.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          fontSize: '0.85rem', color: 'var(--text-muted)'
+        }}>
+          <span style={{
+            display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
+            background: searchSource === 'sam.gov' ? '#10b981' : 'var(--accent-primary)',
+          }} />
+          {searchSource === 'sam.gov'
+            ? `${displayData.length} live results from SAM.gov`
+            : `${displayData.length} results from local database`}
+        </div>
+      )}
+
       {/* Results */}
       <div style={{ display: 'grid', gap: '1rem' }}>
         {displayData.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-            No contracts found matching "{query}".
+          <div className="glass-panel" style={{
+            textAlign: 'center', padding: '3rem',
+            color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center'
+          }}>
+            {query ? (
+              <>
+                <p style={{ fontSize: '1.1rem' }}>No contracts found matching &ldquo;{query}&rdquo;.</p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                  Try different keywords, a NAICS code, or an agency name.
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: '1.1rem' }}>No contracts in your local database yet.</p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                  Search above to find live opportunities from SAM.gov.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           displayData.map((opp) => (
