@@ -47,16 +47,18 @@ export async function searchSamGovLive(keyword: string): Promise<SamGovSearchRes
     return { results: [], error: 'API key not configured.' };
   }
 
-  // Build URL with params — SAM.gov v2 requires api_key, postedFrom, postedTo, and limit
+  // Build URL with params — SAM.gov v2 requires api_key, postedFrom, postedTo, and limit.
+  // The posted date range must be strictly LESS than 1 year apart, otherwise SAM.gov
+  // returns HTTP 400 "Date range must be 1 year(s) apart". We use 11 months to stay safe.
   const now = new Date();
-  const twelveMonthsAgo = new Date(now);
-  twelveMonthsAgo.setFullYear(twelveMonthsAgo.getFullYear() - 1);
+  const rangeStart = new Date(now);
+  rangeStart.setMonth(rangeStart.getMonth() - 11);
 
   const url = new URL(SAM_API_BASE);
   url.searchParams.set('api_key', apiKey);
-  url.searchParams.set('keyword', keyword);
+  url.searchParams.set('title', keyword); // v2 has no "keyword" param — free-text search is "title"
   url.searchParams.set('limit', '25');
-  url.searchParams.set('postedFrom', formatSamDate(twelveMonthsAgo));
+  url.searchParams.set('postedFrom', formatSamDate(rangeStart));
   url.searchParams.set('postedTo', formatSamDate(now));
   url.searchParams.set('ptype', 'o,p'); // opportunities + presolicitations
 
@@ -77,7 +79,7 @@ export async function searchSamGovLive(keyword: string): Promise<SamGovSearchRes
 
     if (!response.ok) {
       const errorBody = await response.text().catch(() => '');
-      console.error(`[SAM.gov Search] API returned ${response.status}: ${response.statusText}`);
+      console.error(`[SAM.gov Search] API returned ${response.status}: ${response.statusText} — ${errorBody}`);
 
       if (response.status === 429) {
         return { results: [], error: 'SAM.gov API rate limit exceeded. The daily quota resets at midnight UTC.' };
