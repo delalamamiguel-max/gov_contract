@@ -1,6 +1,8 @@
 import { Shield, Search, LayoutDashboard, Settings, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import PaywallGuard from '@/components/PaywallGuard';
+import { readProfile, isOnboarded } from '@/lib/profile';
 
 export default async function DashboardLayout({
   children,
@@ -10,6 +12,12 @@ export default async function DashboardLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+
+  // First-time gate: send new users through onboarding before the dashboard.
+  const profile = await readProfile();
+  if (!isOnboarded(profile)) {
+    redirect(`/${locale}/onboarding`);
+  }
 
   return (
     <PaywallGuard>

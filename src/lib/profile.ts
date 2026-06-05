@@ -17,32 +17,55 @@ export interface AgencyProfile {
   agencyName?: string | null;
   // Location & service area
   location?: string | null;
+  citiesServed?: string[];
+  countiesServed?: string[];
   serviceRadiusMiles?: number | null;
   remotePreference?: 'local' | 'remote' | 'hybrid' | null;
+  // Agency identity
+  agencyType?: string | null;
   // Capabilities
   services?: string[];
   industries?: string[];
+  targetOpportunityTypes?: string[];
   certifications?: string[];
   role?: 'prime' | 'subcontractor' | 'both' | null;
   teamSize?: string | null;
   deliveryCapacity?: string | null;
+  largestProjectSize?: number | null;
+  monthlyMediaSpend?: number | null;
   // Contract preferences
   minContract?: number | null;
   maxContract?: number | null;
+  // Readiness & credentials
+  insurance?: string[];
+  priorGovExperience?: 'yes' | 'no' | 'limited' | null;
+  proposalReadiness?: string[];
+  differentiators?: string[];
   // Search tuning
   keywords?: string[];
   excludeKeywords?: string[];
+  // Alerts
+  alertPreferences?: string[];
   // Legacy / federal fields (kept for backward compatibility)
   naicsCodes?: string[];
   setAsideTypes?: string[];
+  // Bookkeeping
+  onboardingCompletedAt?: string | null;
 }
 
 export const EMPTY_PROFILE: AgencyProfile = {
+  citiesServed: [],
+  countiesServed: [],
   services: [],
   industries: [],
+  targetOpportunityTypes: [],
   certifications: [],
+  insurance: [],
+  proposalReadiness: [],
+  differentiators: [],
   keywords: [],
   excludeKeywords: [],
+  alertPreferences: [],
   naicsCodes: [],
   setAsideTypes: [],
 };
@@ -62,24 +85,38 @@ export function normalizeProfile(input: unknown): AgencyProfile {
   return {
     agencyName: str(b.agencyName),
     location: str(b.location),
+    citiesServed: arr(b.citiesServed),
+    countiesServed: arr(b.countiesServed),
     serviceRadiusMiles: num(b.serviceRadiusMiles),
     remotePreference: (['local', 'remote', 'hybrid'].includes(String(b.remotePreference))
       ? b.remotePreference
       : null) as AgencyProfile['remotePreference'],
+    agencyType: str(b.agencyType),
     services: arr(b.services),
     industries: arr(b.industries),
+    targetOpportunityTypes: arr(b.targetOpportunityTypes),
     certifications: arr(b.certifications),
     role: (['prime', 'subcontractor', 'both'].includes(String(b.role))
       ? b.role
       : null) as AgencyProfile['role'],
     teamSize: str(b.teamSize),
     deliveryCapacity: str(b.deliveryCapacity),
+    largestProjectSize: num(b.largestProjectSize),
+    monthlyMediaSpend: num(b.monthlyMediaSpend),
     minContract: num(b.minContract ?? b.minCapacity),
     maxContract: num(b.maxContract ?? b.maxCapacity),
+    insurance: arr(b.insurance),
+    priorGovExperience: (['yes', 'no', 'limited'].includes(String(b.priorGovExperience))
+      ? b.priorGovExperience
+      : null) as AgencyProfile['priorGovExperience'],
+    proposalReadiness: arr(b.proposalReadiness),
+    differentiators: arr(b.differentiators),
     keywords: arr(b.keywords),
     excludeKeywords: arr(b.excludeKeywords),
+    alertPreferences: arr(b.alertPreferences),
     naicsCodes: arr(b.naicsCodes),
     setAsideTypes: arr(b.setAsideTypes),
+    onboardingCompletedAt: str(b.onboardingCompletedAt),
   };
 }
 
@@ -103,6 +140,14 @@ export function hasProfile(p: AgencyProfile): boolean {
       (p.naicsCodes && p.naicsCodes.length) ||
       p.location
   );
+}
+
+/**
+ * True once the user has been through onboarding (even if they skipped most of
+ * it). Gates the dashboard without causing a redirect loop for "Skip for now".
+ */
+export function isOnboarded(p: AgencyProfile): boolean {
+  return Boolean(p.onboardingCompletedAt) || hasProfile(p);
 }
 
 export function profileCookieOptions() {
