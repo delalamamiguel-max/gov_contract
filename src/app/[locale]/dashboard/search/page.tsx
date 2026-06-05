@@ -4,6 +4,7 @@ import { searchSamGovLive } from '@/lib/samgov';
 import { readProfile, hasProfile } from '@/lib/profile';
 import { computeAssessment } from '@/lib/assessment';
 import { computeChecklist } from '@/lib/checklist';
+import { readFeedbackSignals } from '@/lib/feedback';
 import ContractRow from '@/components/ContractRow';
 import SearchInput from '@/components/SearchInput';
 import FilterModal from '@/components/FilterModal';
@@ -24,6 +25,7 @@ export default async function SearchPage({
   const resolvedParams = await searchParams;
   const profile = await readProfile();
   const profileReady = hasProfile(profile);
+  const feedbackSignals = await readFeedbackSignals();
 
   // Radius: explicit ?radius= wins, else the onboarding service radius, else 50.
   const radiusParam = typeof resolvedParams.radius === 'string' ? parseInt(resolvedParams.radius, 10) : NaN;
@@ -79,7 +81,7 @@ export default async function SearchPage({
 
   // Assess every result (deterministic, three-group score), then filter by radius
   // (remote-eligible work always passes) and sort by match score.
-  const assessed = opportunities.map((o) => ({ o, a: computeAssessment(o, profile, radius) }));
+  const assessed = opportunities.map((o) => ({ o, a: computeAssessment(o, profile, radius, feedbackSignals) }));
   const radiusFiltered =
     radius >= 100
       ? assessed

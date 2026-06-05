@@ -8,6 +8,7 @@ import type { RfpAssessment } from '@/lib/rfp';
 import OpportunityAssessmentCard from '@/components/OpportunityAssessmentCard';
 import ProposalChecklist from '@/components/ProposalChecklist';
 import RfpAssessmentView from '@/components/RfpAssessmentView';
+import FeedbackQuestionnaire from '@/components/FeedbackQuestionnaire';
 
 type Tab = 'assessment' | 'readiness' | 'rfp';
 
@@ -230,7 +231,10 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
                   <button className="btn btn-secondary" style={{ alignSelf: 'flex-start', padding: '0.4rem 0.8rem' }} onClick={() => { setRfp(null); void runRfp(); }}>Retry</button>
                 </div>
               ) : rfp ? (
-                <RfpAssessmentView a={rfp} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <RfpAssessmentView a={rfp} />
+                  <FeedbackQuestionnaire noticeId={String(opp.id)} opportunityTitle={opp.title} />
+                </div>
               ) : null
             )}
           </div>

@@ -75,10 +75,16 @@ const lower = (s: string) => s.toLowerCase();
  * Compute a deterministic Opportunity Assessment for an opportunity against the
  * agency profile. Pure and fast — safe to run for every search result server-side.
  */
+export interface FeedbackSignalInput {
+  prioritizeServices?: string[];
+  sizeBias?: 'smaller' | 'larger' | 'neutral';
+}
+
 export function computeAssessment(
   opp: AssessmentOpportunity,
   profile: AgencyProfile,
-  radius: number
+  radius: number,
+  signals?: FeedbackSignalInput
 ): OpportunityAssessment {
   const hay = `${opp.title} ${opp.description || ''} ${opp.setAsideType || ''}`.toLowerCase();
   const excludeHit = (profile.excludeKeywords || []).find((x) => x && hay.includes(x.toLowerCase()));
@@ -281,10 +287,25 @@ export function computeAssessment(
   const readyCount = readiness.length;
   edChecks.push(Math.min(100, 40 + readyCount * 10));
 
-  const edgeScore = Math.round(edChecks.reduce((a, b) => a + b, 0) / edChecks.length);
+  let edgeScore = Math.round(edChecks.reduce((a, b) => a + b, 0) / edChecks.length);
+
+  // Feedback learning: boost services the user asked to prioritize.
+  if (signals?.prioritizeServices?.length) {
+    const boosted = signals.prioritizeServices.filter((s) => s && hay.includes(lower(s)));
+    if (boosted.length) {
+      edgeScore = Math.min(100, edgeScore + 8);
+      edMatched.push(`Prioritized from your feedback: ${boosted.slice(0, 3).join(', ')}`);
+    }
+  }
 
   // ---------------- WEIGHTED TOTAL + GATING ----------------
   let matchScore = Math.round(eligibilityScore * 0.4 + fitScore * 0.35 + edgeScore * 0.25);
+  // Feedback learning: nudge by the user's observed size preference.
+  if (signals?.sizeBias && signals.sizeBias !== 'neutral' && opp.estimatedValue) {
+    const big = opp.estimatedValue >= 500_000;
+    if (signals.sizeBias === 'smaller' && big) matchScore -= 4;
+    if (signals.sizeBias === 'larger' && !big) matchScore -= 3;
+  }
   if (hardRequirementMissing) matchScore = Math.min(matchScore, 39); // never a high score with a hard gap
   if (excludeHit) {
     matchScore = Math.min(matchScore, 20); // user explicitly excluded this kind of work

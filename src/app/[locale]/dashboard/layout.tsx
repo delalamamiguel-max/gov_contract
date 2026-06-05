@@ -1,4 +1,4 @@
-import { Shield, Search, LayoutDashboard, Settings, LogOut } from 'lucide-react';
+import { Shield, Search, LayoutDashboard, Settings, LogOut, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import PaywallGuard from '@/components/PaywallGuard';
@@ -58,6 +58,13 @@ export default async function DashboardLayout({
             }}>
               <LayoutDashboard size={18} />
               <span style={{ fontWeight: 500 }}>My Pipeline</span>
+            </Link>
+            <Link href={`/${locale}/dashboard/alerts`} style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
+              borderRadius: '8px', color: 'var(--text-secondary)'
+            }}>
+              <Bell size={18} />
+              <span style={{ fontWeight: 500 }}>Alerts</span>
             </Link>
           </nav>
 
