@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 // ---------------------------------------------------------------------------
 // Agency profile store.
@@ -10,8 +11,10 @@ import { cookies } from 'next/headers';
 // Data Connect can still be written best-effort elsewhere without blocking.
 // ---------------------------------------------------------------------------
 
-export const PROFILE_COOKIE = 'agency_profile';
+export const PROFILE_COOKIE = 'agency_profile';   // JSON cache / offline fallback
+export const PROFILE_KEY_COOKIE = 'agency_pid';   // opaque key mapping browser -> Supabase row
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
+const PROFILES_TABLE = 'agency_profiles';
 
 export interface AgencyProfile {
   agencyName?: string | null;
@@ -120,15 +123,97 @@ export function normalizeProfile(input: unknown): AgencyProfile {
   };
 }
 
-/** Read the saved profile (server-side). Returns EMPTY_PROFILE if none/invalid. */
+/**
+ * Read the saved profile (server-side). Tries Supabase (keyed by the agency_pid
+ * cookie) first, then falls back to the cached cookie JSON, then EMPTY_PROFILE.
+ */
 export async function readProfile(): Promise<AgencyProfile> {
+  const store = await cookies();
+
+  // 1) Supabase by profile key
+  const pid = store.get(PROFILE_KEY_COOKIE)?.value;
+  if (pid) {
+    try {
+      const supabase = getSupabaseAdmin();
+      if (supabase) {
+        const { data, error } = await supabase
+          .from(PROFILES_TABLE)
+          .select('data')
+          .eq('profile_key', pid)
+          .maybeSingle();
+        if (!error && data?.data) return normalizeProfile(data.data);
+      }
+    } catch {
+      // fall through to cookie cache
+    }
+  }
+
+  // 2) Cookie cache / offline fallback
   try {
-    const store = await cookies();
     const raw = store.get(PROFILE_COOKIE)?.value;
-    if (!raw) return { ...EMPTY_PROFILE };
-    return normalizeProfile(JSON.parse(raw));
+    if (raw) return normalizeProfile(JSON.parse(raw));
   } catch {
-    return { ...EMPTY_PROFILE };
+    /* ignore */
+  }
+
+  return { ...EMPTY_PROFILE };
+}
+
+/** Map a normalized profile to the agency_profiles table columns (+ jsonb mirror). */
+export function profileToRow(profileKey: string, p: AgencyProfile): Record<string, unknown> {
+  return {
+    profile_key: profileKey,
+    agency_name: p.agencyName ?? null,
+    agency_type: p.agencyType ?? null,
+    location: p.location ?? null,
+    cities_served: p.citiesServed ?? [],
+    counties_served: p.countiesServed ?? [],
+    service_radius_miles: p.serviceRadiusMiles ?? null,
+    remote_preference: p.remotePreference ?? null,
+    services: p.services ?? [],
+    industries: p.industries ?? [],
+    target_opportunity_types: p.targetOpportunityTypes ?? [],
+    certifications: p.certifications ?? [],
+    insurance: p.insurance ?? [],
+    proposal_readiness: p.proposalReadiness ?? [],
+    differentiators: p.differentiators ?? [],
+    keywords: p.keywords ?? [],
+    exclude_keywords: p.excludeKeywords ?? [],
+    alert_preferences: p.alertPreferences ?? [],
+    naics_codes: p.naicsCodes ?? [],
+    set_aside_types: p.setAsideTypes ?? [],
+    role: p.role ?? null,
+    team_size: p.teamSize ?? null,
+    delivery_capacity: p.deliveryCapacity ?? null,
+    prior_gov_experience: p.priorGovExperience ?? null,
+    min_contract: p.minContract ?? null,
+    max_contract: p.maxContract ?? null,
+    largest_project_size: p.largestProjectSize ?? null,
+    monthly_media_spend: p.monthlyMediaSpend ?? null,
+    data: p,
+    onboarding_completed_at: p.onboardingCompletedAt ?? null,
+  };
+}
+
+/**
+ * Upsert the profile to Supabase. Returns true on success, false if Supabase is
+ * unavailable/unconfigured (caller should still persist the cookie fallback).
+ */
+export async function saveProfileToSupabase(profileKey: string, p: AgencyProfile): Promise<boolean> {
+  try {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return false;
+    const { error } = await supabase
+      .from(PROFILES_TABLE)
+      .upsert(profileToRow(profileKey, p), { onConflict: 'profile_key' });
+    if (error) {
+      console.warn('[Profile] Supabase upsert failed:', error.message);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.warn('[Profile] Supabase upsert threw:', e instanceof Error ? e.message : e);
+    return false;
   }
 }
 
