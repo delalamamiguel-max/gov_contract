@@ -112,11 +112,114 @@ export interface SamGovSearchResult {
 }
 
 /**
+ * Normalize one raw SAM.gov opportunity record into our SamGovOpportunity shape.
+ * Shared by live search (legacy) and the centralized ingestion service.
+ */
+export function mapSamRecord(opp: Record<string, unknown>): SamGovOpportunity {
+  const naics = Array.isArray(opp.naicsCodes)
+    ? (opp.naicsCodes[0] as string)
+    : (opp.naicsCode as string) || null;
+  const psc = (opp.classificationCode as string) || null;
+  const setAside = (opp.typeOfSetAsideDescription as string) || (opp.typeOfSetAside as string) || null;
+  const pop = formatPlaceOfPerformance(opp.placeOfPerformance);
+
+  const rawDesc = (opp.description as string) || '';
+  const descIsUrl = /^https?:\/\//i.test(rawDesc.trim());
+  const descriptionUrl = descIsUrl ? rawDesc.trim() : null;
+  const realText = descIsUrl ? null : rawDesc.trim() || null;
+
+  return {
+    noticeId: (opp.noticeId as string) || (opp.solicitationNumber as string) || `SAM-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    title: (opp.title as string) || 'Untitled Opportunity',
+    agency: (opp.fullParentPathName as string) || (opp.department as string) || 'Unknown Agency',
+    description: realText || synthesizeDescription({
+      title: (opp.title as string) || '',
+      agency: (opp.fullParentPathName as string) || null,
+      naics, psc, setAside, pop,
+      type: (opp.type as string) || null,
+    }),
+    descriptionUrl,
+    solicitationNumber: (opp.solicitationNumber as string) || null,
+    naicsCode: naics,
+    pscCode: psc,
+    setAsideType: setAside,
+    placeOfPerformance: pop,
+    postedDate: opp.postedDate ? new Date(opp.postedDate as string).toISOString() : new Date().toISOString(),
+    responseDeadline: opp.responseDeadLine ? new Date(opp.responseDeadLine as string).toISOString() : null,
+    estimatedValue: null,
+    sourceUrl: (opp.uiLink as string) || `https://sam.gov/opp/${opp.noticeId}/view`,
+  };
+}
+
+export interface SamFetchParams {
+  /** Free-text title search (optional — omit for a broad pull). */
+  title?: string;
+  /** Months back from today (capped to <12 to satisfy SAM's 1-year rule). */
+  months?: number;
+  /** Max records per request. */
+  limit?: number;
+  /** Pagination offset. */
+  offset?: number;
+}
+
+export interface SamFetchResult {
+  /** Raw SAM records (kept raw for auditing/normalization downstream). */
+  records: Record<string, unknown>[];
+  totalRecords: number;
+  error?: string;
+  status?: number;
+}
+
+/**
+ * Low-level SAM.gov fetch returning RAW records (no mapping). Server-side only.
+ * Used by the ingestion service so the raw payload can be stored for auditing.
+ */
+export async function fetchSamGovPage(params: SamFetchParams = {}): Promise<SamFetchResult> {
+  const apiKey = process.env.SAM_GOV_API_KEY;
+  if (!apiKey) return { records: [], totalRecords: 0, error: 'SAM_GOV_API_KEY not configured.' };
+
+  const months = Math.min(11, Math.max(1, params.months ?? 6));
+  const now = new Date();
+  const rangeStart = new Date(now);
+  rangeStart.setMonth(rangeStart.getMonth() - months);
+
+  const url = new URL(SAM_API_BASE);
+  url.searchParams.set('api_key', apiKey);
+  if (params.title) url.searchParams.set('title', params.title);
+  url.searchParams.set('limit', String(params.limit ?? 50));
+  url.searchParams.set('offset', String(params.offset ?? 0));
+  url.searchParams.set('postedFrom', formatSamDate(rangeStart));
+  url.searchParams.set('postedTo', formatSamDate(now));
+  url.searchParams.set('ptype', 'o,p');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), SAM_REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(url.toString(), { headers: { Accept: 'application/json' }, signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      return { records: [], totalRecords: 0, status: response.status, error: `SAM.gov HTTP ${response.status}: ${body.slice(0, 160)}` };
+    }
+    const data = await response.json();
+    const records = Array.isArray(data.opportunitiesData) ? data.opportunitiesData : [];
+    return { records, totalRecords: Number(data.totalRecords) || records.length };
+  } catch (error: unknown) {
+    clearTimeout(timeoutId);
+    const msg = error instanceof Error && error.name === 'AbortError' ? 'SAM.gov request timed out' : (error instanceof Error ? error.message : 'SAM.gov fetch failed');
+    return { records: [], totalRecords: 0, error: msg };
+  }
+}
+
+/**
  * Search SAM.gov API v2 for contract opportunities matching a keyword.
  * Returns mapped results ready for display. Returns empty results with optional error message.
  *
  * This runs server-side only (in server components or API routes).
  * The API key is never exposed to the client.
+ *
+ * NOTE: As of Phase 1, user-facing search queries Supabase (lib/opportunities.ts),
+ * not this function. This remains only for reference/ingestion-adjacent use.
  */
 export async function searchSamGovLive(keyword: string): Promise<SamGovSearchResult> {
   const apiKey = process.env.SAM_GOV_API_KEY;
@@ -175,47 +278,7 @@ export async function searchSamGovLive(keyword: string): Promise<SamGovSearchRes
 
     console.log(`[SAM.gov Search] Found ${data.opportunitiesData.length} results for "${keyword}"`);
 
-    return { results: data.opportunitiesData.map((opp: Record<string, unknown>): SamGovOpportunity => {
-      const naics = Array.isArray(opp.naicsCodes)
-        ? (opp.naicsCodes[0] as string)
-        : (opp.naicsCode as string) || null;
-      const psc = (opp.classificationCode as string) || null;
-      const setAside = (opp.typeOfSetAsideDescription as string) || (opp.typeOfSetAside as string) || null;
-      const pop = formatPlaceOfPerformance(opp.placeOfPerformance);
-
-      // SAM.gov v2 returns `description` as a URL to the full notice text, not the
-      // text itself. Detect that, keep the URL for lazy fetching, and synthesize a
-      // readable summary so the description is never blank or a raw link.
-      const rawDesc = (opp.description as string) || '';
-      const descIsUrl = /^https?:\/\//i.test(rawDesc.trim());
-      const descriptionUrl = descIsUrl ? rawDesc.trim() : null;
-      const realText = descIsUrl ? null : rawDesc.trim() || null;
-
-      return {
-        noticeId: (opp.noticeId as string) || `SAM-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        title: (opp.title as string) || 'Untitled Opportunity',
-        agency: (opp.fullParentPathName as string) || (opp.department as string) || 'Unknown Agency',
-        description: realText || synthesizeDescription({
-          title: (opp.title as string) || '',
-          agency: (opp.fullParentPathName as string) || null,
-          naics,
-          psc,
-          setAside,
-          pop,
-          type: (opp.type as string) || null,
-        }),
-        descriptionUrl,
-        solicitationNumber: (opp.solicitationNumber as string) || null,
-        naicsCode: naics,
-        pscCode: psc,
-        setAsideType: setAside,
-        placeOfPerformance: pop,
-        postedDate: opp.postedDate ? new Date(opp.postedDate as string).toISOString() : new Date().toISOString(),
-        responseDeadline: opp.responseDeadLine ? new Date(opp.responseDeadLine as string).toISOString() : null,
-        estimatedValue: null, // SAM.gov search results typically don't include estimated value
-        sourceUrl: (opp.uiLink as string) || `https://sam.gov/opp/${opp.noticeId}/view`,
-      };
-    }) };
+    return { results: data.opportunitiesData.map((opp: Record<string, unknown>) => mapSamRecord(opp)) };
   } catch (error: unknown) {
     clearTimeout(timeoutId);
 

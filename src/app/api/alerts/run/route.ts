@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { searchSamGovLive } from '@/lib/samgov';
+import { queryOpportunities } from '@/lib/opportunities';
 import { readProfile, PROFILE_KEY_COOKIE, profileCookieOptions } from '@/lib/profile';
 import { readAlerts, alertMatches, syncAlertsToSupabase, ALERTS_COOKIE } from '@/lib/alerts';
 import { computeAssessment } from '@/lib/assessment';
@@ -15,7 +15,7 @@ function fmtValue(v: number | null | undefined): string {
   return `$${v.toLocaleString()}`;
 }
 
-/** POST /api/alerts/run — Body: { id }. Runs one alert against live SAM.gov data. */
+/** POST /api/alerts/run — Body: { id }. Runs one alert against the synced Supabase store. */
 export async function POST(req: Request) {
   let id: string | undefined;
   try {
@@ -37,15 +37,16 @@ export async function POST(req: Request) {
     profile.keywords?.[0] ||
     'marketing';
 
-  let results: any[] = [];
-  let error: string | undefined;
-  try {
-    const sam = await searchSamGovLive(query);
-    results = sam.results;
-    error = sam.error;
-  } catch {
-    error = 'Live search is temporarily unavailable.';
-  }
+  // Query the synced Supabase store (never SAM.gov live).
+  const queryRes = await queryOpportunities({
+    keyword: query,
+    setAsideType: alert.criteria.certifications?.[0],
+    limit: 200,
+  });
+  const results = queryRes.results;
+  const error = queryRes.unavailable
+    ? 'Opportunity database is not available right now.'
+    : queryRes.error;
 
   const matches = results
     .filter((o) => alertMatches(alert.criteria, o))

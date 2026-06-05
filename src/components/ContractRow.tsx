@@ -102,7 +102,7 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
       const res = await fetch('/api/opportunity/description', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ descriptionUrl: opp.descriptionUrl }),
+        body: JSON.stringify({ descriptionUrl: opp.descriptionUrl, sourceId: String(opp.id) }),
       });
       const data = await res.json();
       if (data?.description) setFullDescription(data.description as string);
