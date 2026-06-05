@@ -307,6 +307,39 @@ Do not give a high score if a hard requirement is clearly missing.`;
 }
 
 /**
+ * Generic AI JSON helper: sends a prompt, parses the first JSON object from the
+ * reply, and returns it merged over `fallback`. Never throws — returns
+ * { data: fallback, source: 'fallback' } on any failure or if AI is unconfigured.
+ */
+export async function aiJson<T extends Record<string, unknown>>(
+  prompt: string,
+  fallback: T
+): Promise<{ data: T; source: 'ai' | 'fallback' }> {
+  if (!aiEnabled) return { data: fallback, source: 'fallback' };
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), AI_REQUEST_TIMEOUT_MS);
+  try {
+    const response = await openai.chat.completions.create(
+      { model: AI_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.3 },
+      { signal: controller.signal }
+    );
+    clearTimeout(timeoutId);
+    const raw = response.choices?.[0]?.message?.content || '';
+    const cleaned = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    const jsonText = start >= 0 && end > start ? cleaned.slice(start, end + 1) : cleaned;
+    const parsed = JSON.parse(jsonText) as Partial<T>;
+    return { data: { ...fallback, ...parsed }, source: 'ai' };
+  } catch (e) {
+    clearTimeout(timeoutId);
+    console.warn('[AI] aiJson fell back:', e instanceof Error ? e.message : e);
+    return { data: fallback, source: 'fallback' };
+  }
+}
+
+/**
  * Backward-compatible wrapper for older callers expecting { fitScore, matchSummary }.
  */
 export async function generateFitScore(

@@ -3,9 +3,16 @@
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, Plus, Globe, MapPin } from 'lucide-react';
 import type { OpportunityAssessment, MatchLabel } from '@/lib/assessment';
+import type { ProposalChecklist as Checklist } from '@/lib/checklist';
+import type { RfpAssessment } from '@/lib/rfp';
 import OpportunityAssessmentCard from '@/components/OpportunityAssessmentCard';
+import ProposalChecklist from '@/components/ProposalChecklist';
+import RfpAssessmentView from '@/components/RfpAssessmentView';
+
+type Tab = 'assessment' | 'readiness' | 'rfp';
 
 interface ContractRowProps {
+  radius?: number;
   opp: {
     id: string | number;
     title: string;
@@ -21,6 +28,7 @@ interface ContractRowProps {
     responseDeadline?: string | number | Date;
     sourceUrl?: string;
     assessment: OpportunityAssessment;
+    checklist: Checklist;
   };
 }
 
@@ -31,14 +39,55 @@ const labelChip: Record<MatchLabel, { bg: string; fg: string }> = {
   'Weak Match': { bg: 'rgba(239,68,68,0.2)', fg: '#f87171' },
 };
 
-export default function ContractRow({ opp }: ContractRowProps) {
+export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
   const [expanded, setExpanded] = useState(false);
   const [added, setAdded] = useState(false);
   const [fullDescription, setFullDescription] = useState<string | null>(null);
   const [descLoading, setDescLoading] = useState(false);
+  const [tab, setTab] = useState<Tab>('assessment');
+  const [rfp, setRfp] = useState<RfpAssessment | null>(null);
+  const [rfpLoading, setRfpLoading] = useState(false);
+  const [rfpError, setRfpError] = useState<string | null>(null);
 
   const a = opp.assessment;
   const chip = labelChip[a.label];
+
+  const runRfp = async () => {
+    if (rfp || rfpLoading) return;
+    setRfpLoading(true);
+    setRfpError(null);
+    try {
+      const res = await fetch('/api/rfp-assessment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          radius,
+          opportunity: {
+            title: opp.title,
+            description: fullDescription || opp.description || null,
+            agency: opp.agency,
+            setAsideType: opp.setAsideType || null,
+            naicsCode: opp.naicsCode || null,
+            estimatedValue: opp.estimatedValue ?? null,
+            responseDeadline: opp.responseDeadline ? new Date(opp.responseDeadline).toISOString() : null,
+            placeOfPerformance: opp.placeOfPerformance || null,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not generate the RFP assessment.');
+      setRfp(data as RfpAssessment);
+    } catch (err: unknown) {
+      setRfpError(err instanceof Error ? err.message : 'RFP assessment failed.');
+    } finally {
+      setRfpLoading(false);
+    }
+  };
+
+  const selectTab = (t: Tab) => {
+    setTab(t);
+    if (t === 'rfp') void runRfp();
+  };
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -144,8 +193,47 @@ export default function ContractRow({ opp }: ContractRowProps) {
             animation: 'fadeIn 0.3s ease',
           }}
         >
-          {/* Full deterministic assessment */}
-          <OpportunityAssessmentCard a={a} />
+          {/* Tabs */}
+          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }} onClick={(e) => e.stopPropagation()}>
+            {([['assessment', 'Assessment'], ['readiness', 'Proposal Readiness'], ['rfp', 'RFP Workflow']] as [Tab, string][]).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => selectTab(key)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: tab === key ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                  color: tab === key ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  padding: '0.5rem 0.25rem',
+                  cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab content */}
+          <div onClick={(e) => e.stopPropagation()}>
+            {tab === 'assessment' && <OpportunityAssessmentCard a={a} />}
+            {tab === 'readiness' && <ProposalChecklist checklist={opp.checklist} />}
+            {tab === 'rfp' && (
+              rfpLoading ? (
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', padding: '0.5rem 0' }}>
+                  Generating RFP assessment…
+                </p>
+              ) : rfpError ? (
+                <div style={{ padding: '0.75rem', background: 'rgba(239,68,68,0.08)', borderRadius: 8, borderLeft: '3px solid #f87171', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.88rem', color: '#f87171' }}>{rfpError}</span>
+                  <button className="btn btn-secondary" style={{ alignSelf: 'flex-start', padding: '0.4rem 0.8rem' }} onClick={() => { setRfp(null); void runRfp(); }}>Retry</button>
+                </div>
+              ) : rfp ? (
+                <RfpAssessmentView a={rfp} />
+              ) : null
+            )}
+          </div>
 
           {/* Description */}
           <div>

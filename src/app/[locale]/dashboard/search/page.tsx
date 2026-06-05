@@ -3,6 +3,7 @@ import { listOpportunities, searchOpportunities } from '@/lib/dataconnect';
 import { searchSamGovLive } from '@/lib/samgov';
 import { readProfile, hasProfile } from '@/lib/profile';
 import { computeAssessment } from '@/lib/assessment';
+import { computeChecklist } from '@/lib/checklist';
 import ContractRow from '@/components/ContractRow';
 import SearchInput from '@/components/SearchInput';
 import FilterModal from '@/components/FilterModal';
@@ -101,6 +102,7 @@ export default async function SearchPage({
     responseDeadline: o.responseDeadline,
     sourceUrl: o.sourceUrl,
     assessment: a,
+    checklist: computeChecklist(o, profile),
   }));
 
   return (
@@ -162,7 +164,7 @@ export default async function SearchPage({
             )}
           </div>
         ) : (
-          displayData.map((opp) => <ContractRow key={opp.id} opp={opp} />)
+          displayData.map((opp) => <ContractRow key={opp.id} opp={opp} radius={radius} />)
         )}
       </div>
     </div>
