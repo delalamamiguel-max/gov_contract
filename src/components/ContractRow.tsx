@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Zap, ChevronDown, ChevronUp, Plus, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { Zap, ChevronDown, ChevronUp, Plus, AlertTriangle, CheckCircle2, XCircle, Globe, MapPin } from 'lucide-react';
 
 interface AgencyProfile {
   services?: string[];
@@ -42,6 +42,9 @@ interface ContractRowProps {
     setAsideType?: string;
     placeOfPerformance?: string;
     responseDeadline?: string | number | Date;
+    remoteEligible?: boolean;
+    distanceMiles?: number | null;
+    matchReasons?: string[];
   };
   agencyProfile?: AgencyProfile;
 }
@@ -173,6 +176,24 @@ export default function ContractRow({ opp, agencyProfile = {} }: ContractRowProp
           <p style={{ color: 'var(--text-secondary)' }}>
             {opp.agency} &bull; Est. Value: {opp.value}
           </p>
+          {/* Relevance badges */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+            {opp.remoteEligible && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', fontWeight: 600, padding: '0.15rem 0.45rem', borderRadius: 4, background: 'rgba(16,185,129,0.15)', color: '#34d399' }}>
+                <Globe size={11} /> Remote eligible
+              </span>
+            )}
+            {typeof opp.distanceMiles === 'number' && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+                <MapPin size={11} /> ~{opp.distanceMiles} mi
+              </span>
+            )}
+            {(opp.matchReasons || []).filter((r) => r !== 'Remote eligible').slice(0, 3).map((r) => (
+              <span key={r} style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: 4, background: 'rgba(59,130,246,0.12)', color: 'var(--accent-primary)' }}>
+                {r}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

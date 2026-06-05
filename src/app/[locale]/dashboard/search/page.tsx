@@ -1,40 +1,18 @@
 export const dynamic = 'force-dynamic';
 import { listOpportunities, searchOpportunities } from '@/lib/dataconnect';
-import { searchSamGovLive, type SamGovOpportunity } from '@/lib/samgov';
+import { searchSamGovLive } from '@/lib/samgov';
 import { readProfile, hasProfile, type AgencyProfile } from '@/lib/profile';
+import { scoreOpportunity } from '@/lib/ranking';
 import ContractRow from '@/components/ContractRow';
 import SearchInput from '@/components/SearchInput';
 import FilterModal from '@/components/FilterModal';
+import DistanceSlider from '@/components/DistanceSlider';
 
 function formatContractValue(value: number | null | undefined): string {
   if (!value) return 'TBD';
   if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `$${(value / 1_000).toFixed(0)}K`;
   return `$${value.toLocaleString()}`;
-}
-
-/** Marketing-relevance signal so we don't just trust raw API order. */
-const MARKETING_TERMS = [
-  'marketing', 'advertis', 'communication', 'public relations', 'branding', 'brand',
-  'website', 'web design', 'web development', 'digital', 'seo', 'social media', 'media buy',
-  'creative', 'campaign', 'outreach', 'graphic design', 'video', 'content', 'copywrit',
-  'strategy', 'market research', 'translation', 'localization', 'photography', 'email marketing',
-];
-
-function relevanceScore(opp: Partial<SamGovOpportunity>, profile: AgencyProfile): number {
-  const hay = `${opp.title || ''} ${opp.description || ''} ${opp.setAsideType || ''}`.toLowerCase();
-  let score = 0;
-  if (MARKETING_TERMS.some((t) => hay.includes(t))) score += 30;
-  for (const s of profile.services || []) if (s && hay.includes(s.toLowerCase())) score += 8;
-  for (const k of profile.keywords || []) if (k && hay.includes(k.toLowerCase())) score += 6;
-  for (const ind of profile.industries || []) if (ind && hay.includes(ind.toLowerCase())) score += 4;
-  for (const x of profile.excludeKeywords || []) if (x && hay.includes(x.toLowerCase())) score -= 40;
-  // Deadline urgency: soonest first gets a small boost
-  if (opp.responseDeadline) {
-    const days = (new Date(opp.responseDeadline).getTime() - Date.now()) / 86_400_000;
-    if (days > 0 && days < 30) score += 5;
-  }
-  return score;
 }
 
 export default async function SearchPage({
@@ -45,6 +23,12 @@ export default async function SearchPage({
   const resolvedParams = await searchParams;
   const profile = await readProfile();
   const profileReady = hasProfile(profile);
+
+  // Radius: explicit ?radius= wins, else the onboarding service radius, else 50.
+  const radiusParam = typeof resolvedParams.radius === 'string' ? parseInt(resolvedParams.radius, 10) : NaN;
+  const radius = Number.isFinite(radiusParam)
+    ? Math.min(100, Math.max(0, radiusParam))
+    : profile.serviceRadiusMiles ?? 50;
 
   // Default the query from the agency profile so users don't re-type every time.
   const explicitQuery = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
@@ -92,10 +76,17 @@ export default async function SearchPage({
     }
   }
 
-  // Rank by agency relevance (don't rely on raw API order), then map to display.
-  const ranked = [...opportunities].sort((a, b) => relevanceScore(b, profile) - relevanceScore(a, profile));
+  // Rank by agency relevance, then filter by radius (remote-eligible work always
+  // passes). Keep everything when radius is maxed (statewide+).
+  const scored = opportunities.map((o) => ({ o, rank: scoreOpportunity(o, profile, radius) }));
+  const radiusFiltered =
+    radius >= 100
+      ? scored
+      : scored.filter(({ rank }) => rank.withinRadius || rank.remoteEligible);
+  radiusFiltered.sort((a, b) => b.rank.total - a.rank.total);
+  const hiddenByRadius = scored.length - radiusFiltered.length;
 
-  const displayData = ranked.map((o) => ({
+  const displayData = radiusFiltered.map(({ o, rank }) => ({
     id: o.noticeId,
     title: o.title,
     agency: o.agency,
@@ -111,6 +102,9 @@ export default async function SearchPage({
     placeOfPerformance: o.placeOfPerformance,
     responseDeadline: o.responseDeadline,
     sourceUrl: o.sourceUrl,
+    remoteEligible: rank.remoteEligible,
+    distanceMiles: rank.distanceMiles,
+    matchReasons: rank.reasons,
   }));
 
   const clientProfile: AgencyProfile = {
@@ -132,92 +126,54 @@ export default async function SearchPage({
         <p>Public-sector, nonprofit, education & healthcare opportunities matched to your agency.</p>
       </header>
 
-      <div style={{ display: 'flex', gap: '1rem' }}>
-        <SearchInput />
+      <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'stretch' }}>
+        <div style={{ flex: 1, minWidth: 280 }}>
+          <SearchInput />
+        </div>
         <FilterModal />
+        <DistanceSlider defaultRadius={profile.serviceRadiusMiles ?? 50} />
       </div>
 
-      {/* Profile-not-set hint */}
       {!profileReady && (
-        <div
-          style={{
-            background: 'rgba(59,130,246,0.08)',
-            border: '1px solid rgba(59,130,246,0.25)',
-            borderRadius: '8px',
-            padding: '0.75rem 1rem',
-            fontSize: '0.9rem',
-            color: 'var(--text-secondary)',
-          }}
-        >
+        <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '8px', padding: '0.75rem 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           Finish your agency profile to personalize results by your services, location, and contract size.{' '}
           <a href="/en/onboarding" style={{ color: 'var(--accent-primary)' }}>Complete onboarding →</a>
         </div>
       )}
 
-      {/* Source / personalization indicator */}
       {query && displayData.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          <span
-            style={{
-              display: 'inline-block',
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: searchSource === 'sam.gov' ? '#10b981' : 'var(--accent-primary)',
-            }}
-          />
-          {searchSource === 'sam.gov'
-            ? `${displayData.length} live results from SAM.gov`
-            : `${displayData.length} results from local database`}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: searchSource === 'sam.gov' ? '#10b981' : 'var(--accent-primary)' }} />
+          {searchSource === 'sam.gov' ? `${displayData.length} live results from SAM.gov` : `${displayData.length} results from local database`}
           {usingProfileDefault && <span> · personalized from your profile (&ldquo;{query}&rdquo;)</span>}
+          <span> · within {radius >= 100 ? '100+' : radius} mi{profile.remotePreference && profile.remotePreference !== 'local' ? ' + remote' : ''}</span>
+          {hiddenByRadius > 0 && <span> · {hiddenByRadius} outside radius hidden</span>}
         </div>
       )}
 
       {searchError && (
-        <div
-          style={{
-            background: 'rgba(245, 158, 11, 0.1)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
-            borderRadius: '8px',
-            padding: '0.75rem 1rem',
-            fontSize: '0.9rem',
-            color: '#f59e0b',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-          }}
-        >
+        <div style={{ background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', borderRadius: '8px', padding: '0.75rem 1rem', fontSize: '0.9rem', color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span>&#9888;</span> {searchError}
         </div>
       )}
 
       <div style={{ display: 'grid', gap: '1rem' }}>
         {displayData.length === 0 ? (
-          <div
-            className="glass-panel"
-            style={{
-              textAlign: 'center',
-              padding: '3rem',
-              color: 'var(--text-secondary)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.75rem',
-              alignItems: 'center',
-            }}
-          >
-            {query ? (
+          <div className="glass-panel" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+            {hiddenByRadius > 0 ? (
+              <>
+                <p style={{ fontSize: '1.1rem' }}>All {hiddenByRadius} results are outside your {radius} mile radius.</p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Increase the distance slider, or set your preference to remote/hybrid to see remote-eligible work.</p>
+              </>
+            ) : query ? (
               <>
                 <p style={{ fontSize: '1.1rem' }}>No opportunities found matching &ldquo;{query}&rdquo;.</p>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                  Try a broader term like &ldquo;marketing&rdquo;, &ldquo;communications&rdquo;, or &ldquo;website&rdquo;, or adjust your filters.
-                </p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Try a broader term like &ldquo;marketing&rdquo;, &ldquo;communications&rdquo;, or &ldquo;website&rdquo;, or adjust your filters.</p>
               </>
             ) : (
               <>
                 <p style={{ fontSize: '1.1rem' }}>Search to find live opportunities.</p>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                  Try &ldquo;marketing&rdquo;, &ldquo;advertising&rdquo;, &ldquo;public relations&rdquo;, or &ldquo;website design&rdquo;.
-                </p>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Try &ldquo;marketing&rdquo;, &ldquo;advertising&rdquo;, &ldquo;public relations&rdquo;, or &ldquo;website design&rdquo;.</p>
               </>
             )}
           </div>
