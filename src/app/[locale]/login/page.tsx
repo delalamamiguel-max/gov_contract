@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { createClient } from '@/lib/supabase/client';
 import { useLocale } from 'next-intl';
 import { Shield } from 'lucide-react';
 
@@ -15,20 +14,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const locale = useLocale();
+  const supabase = createClient();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const token = await userCredential.user.getIdToken();
-      await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      });
-      router.push(`/${locale}/dashboard/search`);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      router.push(`/${locale}/dashboard/recommendations`);
+      router.refresh();
     } catch (err: any) {
       setError(err.message || 'Failed to sign in. Please check your credentials.');
     } finally {
@@ -40,18 +36,12 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      const token = await userCredential.user.getIdToken();
-      await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      });
-      router.push(`/${locale}/dashboard/search`);
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/${locale}/dashboard/recommendations`)}`;
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+      if (error) throw error;
+      // Browser redirects to Google.
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google.');
-    } finally {
+      setError(err.message || 'Google sign-in is not configured yet.');
       setLoading(false);
     }
   };

@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import {
-  readProfile, saveProfileToSupabase, PROFILE_COOKIE, PROFILE_KEY_COOKIE, profileCookieOptions,
+  readProfile, saveProfileToSupabase, getProfileKey, PROFILE_COOKIE, profileCookieOptions,
 } from '@/lib/profile';
 
 /**
@@ -13,8 +12,7 @@ export async function POST() {
   const profile = await readProfile();
   profile.lastFeedSeenAt = new Date().toISOString();
 
-  const store = await cookies();
-  const pid = store.get(PROFILE_KEY_COOKIE)?.value;
+  const pid = await getProfileKey();
 
   if (pid) await saveProfileToSupabase(pid, profile); // best-effort
 

@@ -1,8 +1,9 @@
-import { Shield, Search, LayoutDashboard, Settings, LogOut, Bell, Sparkles } from 'lucide-react';
+import { Shield, Search, LayoutDashboard, Settings, Bell, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import PaywallGuard from '@/components/PaywallGuard';
 import { readProfile, isOnboarded } from '@/lib/profile';
+import { getCurrentUser } from '@/lib/supabase/server';
+import LogoutButton from '@/components/LogoutButton';
 
 export default async function DashboardLayout({
   children,
@@ -13,6 +14,12 @@ export default async function DashboardLayout({
 }) {
   const { locale } = await params;
 
+  // Auth gate: must be signed in to access the dashboard.
+  const user = await getCurrentUser();
+  if (!user) {
+    redirect(`/${locale}/login`);
+  }
+
   // First-time gate: send new users through onboarding before the dashboard.
   const profile = await readProfile();
   if (!isOnboarded(profile)) {
@@ -20,8 +27,7 @@ export default async function DashboardLayout({
   }
 
   return (
-    <PaywallGuard>
-      <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
         {/* Sidebar */}
         <aside style={{
           width: '260px',
@@ -83,13 +89,7 @@ export default async function DashboardLayout({
               <Settings size={18} />
               <span style={{ fontWeight: 500 }}>Settings</span>
             </Link>
-            <button style={{
-              display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
-              borderRadius: '8px', color: 'var(--text-secondary)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left'
-            }}>
-              <LogOut size={18} />
-              <span style={{ fontWeight: 500 }}>Logout</span>
-            </button>
+            <LogoutButton />
           </div>
         </aside>
 
@@ -98,6 +98,5 @@ export default async function DashboardLayout({
           {children}
         </main>
       </div>
-    </PaywallGuard>
   );
 }

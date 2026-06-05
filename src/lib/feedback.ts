@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { PROFILE_KEY_COOKIE } from '@/lib/profile';
+import { getProfileKey } from '@/lib/profile';
 
 // ---------------------------------------------------------------------------
 // Post-RFP feedback. Stored (Supabase primary, cookie fallback) and distilled
@@ -37,8 +37,7 @@ export interface FeedbackSignals {
 }
 
 async function profileKey(): Promise<string | null> {
-  const store = await cookies();
-  return store.get(PROFILE_KEY_COOKIE)?.value ?? null;
+  return getProfileKey();
 }
 
 export async function readFeedback(): Promise<Feedback[]> {

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import {
-  normalizeProfile, readProfile, saveProfileToSupabase,
+  normalizeProfile, readProfile, saveProfileToSupabase, getProfileKey,
   PROFILE_COOKIE, PROFILE_KEY_COOKIE, profileCookieOptions,
 } from '@/lib/profile';
 
@@ -22,9 +22,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  // Stable per-browser key (becomes the Supabase row key; maps to auth uid later).
+  // Key the row by the authenticated user id; fall back to a cookie id only for
+  // anonymous/legacy sessions during the transition.
   const store = await cookies();
-  const profileKey = store.get(PROFILE_KEY_COOKIE)?.value || globalThis.crypto.randomUUID();
+  const profileKey =
+    (await getProfileKey()) || store.get(PROFILE_KEY_COOKIE)?.value || globalThis.crypto.randomUUID();
 
   const persisted = await saveProfileToSupabase(profileKey, profile);
 

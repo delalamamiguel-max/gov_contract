@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { queryOpportunities } from '@/lib/opportunities';
-import { readProfile, PROFILE_KEY_COOKIE, profileCookieOptions } from '@/lib/profile';
+import { readProfile, getProfileKey, profileCookieOptions } from '@/lib/profile';
 import { readAlerts, alertMatches, syncAlertsToSupabase, ALERTS_COOKIE } from '@/lib/alerts';
 import { computeAssessment } from '@/lib/assessment';
 import { computeChecklist } from '@/lib/checklist';
@@ -75,8 +74,7 @@ export async function POST(req: Request) {
   );
   const res = NextResponse.json({ matches, count: matches.length, radius, query, error });
   res.cookies.set(ALERTS_COOKIE, JSON.stringify(next), profileCookieOptions());
-  const store = await cookies();
-  const pid = store.get(PROFILE_KEY_COOKIE)?.value;
+  const pid = await getProfileKey();
   if (pid) await syncAlertsToSupabase(pid, next);
   return res;
 }

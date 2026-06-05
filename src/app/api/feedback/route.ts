@@ -1,11 +1,10 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import {
   appendFeedbackCookie, saveFeedbackToSupabase, readFeedbackSignals,
   FEEDBACK_COOKIE, type Feedback, type FeedbackAnswers,
 } from '@/lib/feedback';
-import { PROFILE_KEY_COOKIE, profileCookieOptions } from '@/lib/profile';
+import { getProfileKey, profileCookieOptions } from '@/lib/profile';
 
 /** GET — return distilled feedback signals (for transparency/debug). */
 export async function GET() {
@@ -34,8 +33,7 @@ export async function POST(req: Request) {
   const res = NextResponse.json({ success: true });
   res.cookies.set(FEEDBACK_COOKIE, JSON.stringify(nextCookie), profileCookieOptions());
 
-  const store = await cookies();
-  const pid = store.get(PROFILE_KEY_COOKIE)?.value;
+  const pid = await getProfileKey();
   if (pid) await saveFeedbackToSupabase(pid, fb); // best-effort
 
   return res;

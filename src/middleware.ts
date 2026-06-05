@@ -1,49 +1,45 @@
 import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
 import { NextRequest, NextResponse } from 'next/server';
- 
+import { createServerClient } from '@supabase/ssr';
+
 const intlMiddleware = createMiddleware(routing);
 
-export default function middleware(request: NextRequest) {
-  // 1. Run the i18n middleware to handle localization
-  const response = intlMiddleware(request);
-
-  // 2. Redirect Root to Login
+export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  if (pathname === '/en' || pathname === '/es' || pathname === '/') {
+
+  // Root → login
+  if (pathname === '/' || pathname === '/en' || pathname === '/es') {
     const locale = pathname === '/' ? 'en' : pathname.replace('/', '');
     return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
   }
 
-  // 3. Perform RBAC Checks
-  const adminOnlyPaths = [
-    '/dashboard/settings',
-    '/dashboard/billing',
-    '/onboarding'
-  ];
+  // i18n routing response.
+  const response = intlMiddleware(request);
 
-  // Check if the current path requires Admin access
-  const requiresAdmin = adminOnlyPaths.some(p => pathname.includes(p));
-
-  if (requiresAdmin) {
-    // In a real application, we would decode the Firebase Auth JWT here
-    // using request.cookies.get('session') and verify the `role` custom claim.
-    
-    // For MVP Phase 2 wiring, we'll simulate the check using a cookie or header.
-    // Let's assume the user's role is stored in a cookie called 'user_role'.
-    const userRole = request.cookies.get('user_role')?.value || 'admin'; // default to admin for local testing
-
-    if (userRole === 'worker') {
-      // Workers are not allowed here. Redirect to the main dashboard search.
-      // We extract the locale to safely redirect (e.g., /en/dashboard/search)
-      const locale = pathname.split('/')[1] || 'en';
-      return NextResponse.redirect(new URL(`/${locale}/dashboard/search`, request.url));
+  // Refresh the Supabase auth session so server components see a valid user.
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+            response.cookies.set(name, value, options);
+          });
+        },
+      },
     }
-  }
+  );
+  await supabase.auth.getUser();
 
   return response;
 }
- 
+
 export const config = {
-  matcher: ['/', '/(en|es)/:path*']
+  matcher: ['/', '/(en|es)/:path*'],
 };

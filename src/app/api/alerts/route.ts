@@ -1,16 +1,14 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import {
   readAlerts, syncAlertsToSupabase, ALERTS_COOKIE, type Alert, type AlertCriteria,
 } from '@/lib/alerts';
-import { PROFILE_KEY_COOKIE, profileCookieOptions } from '@/lib/profile';
+import { getProfileKey, profileCookieOptions } from '@/lib/profile';
 
 async function persist(next: Alert[], extra: Record<string, unknown> = {}) {
   const res = NextResponse.json({ alerts: next, ...extra });
   res.cookies.set(ALERTS_COOKIE, JSON.stringify(next), profileCookieOptions());
-  const store = await cookies();
-  const pid = store.get(PROFILE_KEY_COOKIE)?.value;
+  const pid = await getProfileKey();
   if (pid) await syncAlertsToSupabase(pid, next); // best-effort
   return res;
 }

@@ -3,8 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { createClient } from '@/lib/supabase/client';
 import { useLocale } from 'next-intl';
 import { Shield } from 'lucide-react';
 
@@ -13,31 +12,36 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const locale = useLocale();
+  const supabase = createClient();
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+    setNotice('');
+
     if (password !== confirmPassword) {
       return setError('Passwords do not match.');
     }
 
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const token = await userCredential.user.getIdToken();
-      await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      });
-      router.push(`/${locale}/onboarding`);
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      if (data.session) {
+        // Email confirmation is off — straight into onboarding.
+        router.push(`/${locale}/onboarding`);
+        router.refresh();
+      } else {
+        // Email confirmation is on — user must verify first.
+        setNotice('Account created! Check your email to confirm, then sign in.');
+        setLoading(false);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to create an account.');
-    } finally {
       setLoading(false);
     }
   };
@@ -46,18 +50,11 @@ export default function SignupPage() {
     setError('');
     setLoading(true);
     try {
-      const provider = new GoogleAuthProvider();
-      const userCredential = await signInWithPopup(auth, provider);
-      const token = await userCredential.user.getIdToken();
-      await fetch('/api/auth/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      });
-      router.push(`/${locale}/onboarding`);
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/${locale}/onboarding`)}`;
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+      if (error) throw error;
     } catch (err: any) {
-      setError(err.message || 'Failed to sign up with Google.');
-    } finally {
+      setError(err.message || 'Google sign-up is not configured yet.');
       setLoading(false);
     }
   };
@@ -95,6 +92,11 @@ export default function SignupPage() {
         {error && (
           <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
             {error}
+          </div>
+        )}
+        {notice && (
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: '#34d399', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
+            {notice}
           </div>
         )}
 

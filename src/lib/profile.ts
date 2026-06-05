@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { getSupabaseAdmin } from '@/lib/supabase';
+import { getCurrentUser } from '@/lib/supabase/server';
 
 // ---------------------------------------------------------------------------
 // Agency profile store.
@@ -127,14 +128,26 @@ export function normalizeProfile(input: unknown): AgencyProfile {
 }
 
 /**
- * Read the saved profile (server-side). Tries Supabase (keyed by the agency_pid
- * cookie) first, then falls back to the cached cookie JSON, then EMPTY_PROFILE.
+ * The key under which a user's data is stored. Primary = authenticated Supabase
+ * user id (ties data to the real account); fallback = legacy agency_pid cookie
+ * (pre-auth rows / anonymous) so nothing breaks during the transition.
+ */
+export async function getProfileKey(): Promise<string | null> {
+  const user = await getCurrentUser();
+  if (user) return user.id;
+  const store = await cookies();
+  return store.get(PROFILE_KEY_COOKIE)?.value ?? null;
+}
+
+/**
+ * Read the saved profile (server-side). Tries Supabase (keyed by the user id /
+ * agency_pid) first, then falls back to the cached cookie JSON, then EMPTY_PROFILE.
  */
 export async function readProfile(): Promise<AgencyProfile> {
   const store = await cookies();
 
-  // 1) Supabase by profile key
-  const pid = store.get(PROFILE_KEY_COOKIE)?.value;
+  // 1) Supabase by profile key (authenticated user id, else legacy cookie)
+  const pid = await getProfileKey();
   if (pid) {
     try {
       const supabase = getSupabaseAdmin();

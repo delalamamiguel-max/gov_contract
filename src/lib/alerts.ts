@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers';
 import { getSupabaseAdmin } from '@/lib/supabase';
-import { PROFILE_KEY_COOKIE, profileCookieOptions } from '@/lib/profile';
+import { getProfileKey, profileCookieOptions } from '@/lib/profile';
 import { estimateDistanceMiles, isRemoteEligible } from '@/lib/geo';
 
 // ---------------------------------------------------------------------------
@@ -94,8 +94,7 @@ export function alertMatches(criteria: AlertCriteria, opp: AlertOpportunity): bo
 // ---- Storage ----
 
 async function profileKey(): Promise<string | null> {
-  const store = await cookies();
-  return store.get(PROFILE_KEY_COOKIE)?.value ?? null;
+  return getProfileKey();
 }
 
 function fromRow(r: Record<string, any>): Alert {
