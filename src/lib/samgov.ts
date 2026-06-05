@@ -13,14 +13,93 @@ function formatSamDate(date: Date): string {
   return `${mm}/${dd}/${yyyy}`;
 }
 
+/** Turn SAM.gov's placeOfPerformance object into a readable "City, ST" string. */
+function formatPlaceOfPerformance(pop: unknown): string | null {
+  if (!pop || typeof pop !== 'object') return null;
+  const p = pop as Record<string, any>;
+  const city = p.city?.name || p.city;
+  const state = p.state?.code || p.state?.name || p.state;
+  const country = p.country?.name || p.country?.code;
+  const parts = [city, state].filter(Boolean);
+  if (parts.length) return parts.join(', ');
+  return country || null;
+}
+
+/**
+ * Build a readable summary from the structured fields SAM.gov DOES return, for
+ * when the full description text is not inline. Never returns an empty string.
+ */
+function synthesizeDescription(o: {
+  title: string;
+  agency: string | null;
+  naics: string | null;
+  psc: string | null;
+  setAside: string | null;
+  pop: string | null;
+  type: string | null;
+}): string {
+  const sentences: string[] = [];
+  if (o.agency) sentences.push(`${o.agency} posted this opportunity${o.type ? ` (${o.type})` : ''}.`);
+  if (o.title) sentences.push(`Scope: ${o.title}.`);
+  const meta: string[] = [];
+  if (o.naics) meta.push(`NAICS ${o.naics}`);
+  if (o.psc) meta.push(`PSC ${o.psc}`);
+  if (o.setAside && o.setAside.toLowerCase() !== 'no set aside used') meta.push(`set-aside: ${o.setAside}`);
+  if (o.pop) meta.push(`place of performance: ${o.pop}`);
+  if (meta.length) sentences.push(`Key details — ${meta.join('; ')}.`);
+  sentences.push('Full solicitation text is available from the source; open the SAM.gov listing for complete requirements.');
+  return sentences.join(' ');
+}
+
+/**
+ * Lazily fetch the full notice description text from SAM.gov's noticedesc URL.
+ * Returns null on any failure so callers can fall back to the synthesized summary.
+ */
+export async function fetchSamGovDescription(descriptionUrl: string): Promise<string | null> {
+  const apiKey = process.env.SAM_GOV_API_KEY;
+  if (!apiKey || !/^https?:\/\//i.test(descriptionUrl)) return null;
+  try {
+    const url = new URL(descriptionUrl);
+    if (!url.searchParams.has('api_key')) url.searchParams.set('api_key', apiKey);
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 10_000);
+    const res = await fetch(url.toString(), { headers: { Accept: 'application/json' }, signal: controller.signal });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    const ct = res.headers.get('content-type') || '';
+    if (ct.includes('application/json')) {
+      const data = await res.json();
+      // SAM.gov returns { description: "<text>" } or sometimes an array.
+      const text = typeof data?.description === 'string'
+        ? data.description
+        : Array.isArray(data) && data[0]?.description
+        ? data[0].description
+        : null;
+      return text ? stripHtml(text) : null;
+    }
+    return stripHtml(await res.text());
+  } catch {
+    return null;
+  }
+}
+
+function stripHtml(s: string): string {
+  return s.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export interface SamGovOpportunity {
   noticeId: string;
   title: string;
   agency: string;
+  /** Best available human-readable description: real text if already present, otherwise a synthesized summary. */
   description: string | null;
+  /** SAM.gov returns `description` as a URL to fetch the full notice text — kept here for lazy fetching. */
+  descriptionUrl: string | null;
   solicitationNumber: string | null;
   naicsCode: string | null;
+  pscCode: string | null;
   setAsideType: string | null;
+  placeOfPerformance: string | null;
   postedDate: string;
   responseDeadline: string | null;
   estimatedValue: number | null;
@@ -96,21 +175,47 @@ export async function searchSamGovLive(keyword: string): Promise<SamGovSearchRes
 
     console.log(`[SAM.gov Search] Found ${data.opportunitiesData.length} results for "${keyword}"`);
 
-    return { results: data.opportunitiesData.map((opp: Record<string, unknown>): SamGovOpportunity => ({
-      noticeId: (opp.noticeId as string) || `SAM-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      title: (opp.title as string) || 'Untitled Opportunity',
-      agency: (opp.fullParentPathName as string) || (opp.department as string) || 'Unknown Agency',
-      description: (opp.description as string) || null,
-      solicitationNumber: (opp.solicitationNumber as string) || null,
-      naicsCode: Array.isArray(opp.naicsCodes)
+    return { results: data.opportunitiesData.map((opp: Record<string, unknown>): SamGovOpportunity => {
+      const naics = Array.isArray(opp.naicsCodes)
         ? (opp.naicsCodes[0] as string)
-        : (opp.naicsCode as string) || null,
-      setAsideType: (opp.typeOfSetAsideDescription as string) || (opp.typeOfSetAside as string) || null,
-      postedDate: opp.postedDate ? new Date(opp.postedDate as string).toISOString() : new Date().toISOString(),
-      responseDeadline: opp.responseDeadLine ? new Date(opp.responseDeadLine as string).toISOString() : null,
-      estimatedValue: null, // SAM.gov search results typically don't include estimated value
-      sourceUrl: (opp.uiLink as string) || `https://sam.gov/opp/${opp.noticeId}/view`,
-    })) };
+        : (opp.naicsCode as string) || null;
+      const psc = (opp.classificationCode as string) || null;
+      const setAside = (opp.typeOfSetAsideDescription as string) || (opp.typeOfSetAside as string) || null;
+      const pop = formatPlaceOfPerformance(opp.placeOfPerformance);
+
+      // SAM.gov v2 returns `description` as a URL to the full notice text, not the
+      // text itself. Detect that, keep the URL for lazy fetching, and synthesize a
+      // readable summary so the description is never blank or a raw link.
+      const rawDesc = (opp.description as string) || '';
+      const descIsUrl = /^https?:\/\//i.test(rawDesc.trim());
+      const descriptionUrl = descIsUrl ? rawDesc.trim() : null;
+      const realText = descIsUrl ? null : rawDesc.trim() || null;
+
+      return {
+        noticeId: (opp.noticeId as string) || `SAM-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        title: (opp.title as string) || 'Untitled Opportunity',
+        agency: (opp.fullParentPathName as string) || (opp.department as string) || 'Unknown Agency',
+        description: realText || synthesizeDescription({
+          title: (opp.title as string) || '',
+          agency: (opp.fullParentPathName as string) || null,
+          naics,
+          psc,
+          setAside,
+          pop,
+          type: (opp.type as string) || null,
+        }),
+        descriptionUrl,
+        solicitationNumber: (opp.solicitationNumber as string) || null,
+        naicsCode: naics,
+        pscCode: psc,
+        setAsideType: setAside,
+        placeOfPerformance: pop,
+        postedDate: opp.postedDate ? new Date(opp.postedDate as string).toISOString() : new Date().toISOString(),
+        responseDeadline: opp.responseDeadLine ? new Date(opp.responseDeadLine as string).toISOString() : null,
+        estimatedValue: null, // SAM.gov search results typically don't include estimated value
+        sourceUrl: (opp.uiLink as string) || `https://sam.gov/opp/${opp.noticeId}/view`,
+      };
+    }) };
   } catch (error: unknown) {
     clearTimeout(timeoutId);
 

@@ -1,29 +1,41 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { upsertBusinessProfile } from '@/lib/dataconnect';
+import { normalizeProfile, readProfile, PROFILE_COOKIE, profileCookieOptions } from '@/lib/profile';
 
-// We use a constant UUID for the prototype demo user's tenant
 const DEMO_TENANT_ID = '123e4567-e89b-12d3-a456-426614174000';
 
+/** GET /api/profile — return the saved agency profile. */
+export async function GET() {
+  const profile = await readProfile();
+  return NextResponse.json({ profile });
+}
+
+/** POST /api/profile — persist the agency profile (cookie = source of truth). */
 export async function POST(request: Request) {
+  let profile;
   try {
     const body = await request.json();
-    
-    // Validate inputs
-    const { naicsCodes = [], setAsideTypes = [], minCapacity = null, maxCapacity = null } = body;
+    profile = normalizeProfile(body);
+  } catch {
+    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+  }
 
-    // In a real app, you would read the session cookie, look up the Firebase Auth UID, 
-    // and query the Tenant ID. For the prototype, we use DEMO_TENANT_ID.
+  const res = NextResponse.json({ success: true, profile });
+  res.cookies.set(PROFILE_COOKIE, JSON.stringify(profile), profileCookieOptions());
+
+  // Best-effort mirror to Data Connect — must never block or fail the request.
+  try {
+    const { upsertBusinessProfile } = await import('@/lib/dataconnect');
     await upsertBusinessProfile({
       tenantId: DEMO_TENANT_ID,
-      naicsCodes,
-      setAsideTypes,
-      minCapacity: minCapacity ? parseInt(minCapacity, 10) : null,
-      maxCapacity: maxCapacity ? parseInt(maxCapacity, 10) : null
+      naicsCodes: profile.naicsCodes ?? [],
+      setAsideTypes: profile.setAsideTypes ?? [],
+      minCapacity: profile.minContract ?? null,
+      maxCapacity: profile.maxContract ?? null,
     });
-
-    return NextResponse.json({ success: true, message: 'Profile saved successfully' });
-  } catch (error) {
-    console.error('Failed to save profile:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  } catch {
+    console.warn('[Profile] Data Connect mirror unavailable; saved to cookie only.');
   }
+
+  return res;
 }
