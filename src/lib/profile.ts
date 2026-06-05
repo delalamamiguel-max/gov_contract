@@ -54,6 +54,8 @@ export interface AgencyProfile {
   setAsideTypes?: string[];
   // Bookkeeping
   onboardingCompletedAt?: string | null;
+  /** Watermark: opportunities ingested after this are "new since last visit". */
+  lastFeedSeenAt?: string | null;
 }
 
 export const EMPTY_PROFILE: AgencyProfile = {
@@ -120,6 +122,7 @@ export function normalizeProfile(input: unknown): AgencyProfile {
     naicsCodes: arr(b.naicsCodes),
     setAsideTypes: arr(b.setAsideTypes),
     onboardingCompletedAt: str(b.onboardingCompletedAt),
+    lastFeedSeenAt: str(b.lastFeedSeenAt),
   };
 }
 
@@ -192,6 +195,7 @@ export function profileToRow(profileKey: string, p: AgencyProfile): Record<strin
     monthly_media_spend: p.monthlyMediaSpend ?? null,
     data: p,
     onboarding_completed_at: p.onboardingCompletedAt ?? null,
+    last_feed_seen_at: p.lastFeedSeenAt ?? null,
   };
 }
 

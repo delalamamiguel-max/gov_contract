@@ -170,7 +170,7 @@ export default function OnboardingWizard() {
         body: JSON.stringify({ ...p, onboardingCompletedAt: new Date().toISOString() }),
       });
       if (!res.ok) throw new Error('Could not save your profile. Please try again.');
-      router.push(`/${locale}/dashboard/search`);
+      router.push(`/${locale}/dashboard/recommendations`);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
       setSaving(false);

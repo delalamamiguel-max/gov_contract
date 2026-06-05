@@ -1,4 +1,4 @@
-import { Shield, Search, LayoutDashboard, Settings, LogOut, Bell } from 'lucide-react';
+import { Shield, Search, LayoutDashboard, Settings, LogOut, Bell, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import PaywallGuard from '@/components/PaywallGuard';
@@ -44,10 +44,17 @@ export default async function DashboardLayout({
           </div>
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexGrow: 1 }}>
-            <Link href={`/${locale}/dashboard/search`} style={{
+            <Link href={`/${locale}/dashboard/recommendations`} style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
               borderRadius: '8px', color: 'var(--text-primary)', background: 'var(--surface-primary)',
               border: '1px solid var(--border-color)'
+            }}>
+              <Sparkles size={18} />
+              <span style={{ fontWeight: 500 }}>For You</span>
+            </Link>
+            <Link href={`/${locale}/dashboard/search`} style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1rem',
+              borderRadius: '8px', color: 'var(--text-secondary)'
             }}>
               <Search size={18} />
               <span style={{ fontWeight: 500 }}>Contract Search</span>

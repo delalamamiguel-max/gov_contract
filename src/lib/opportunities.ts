@@ -10,7 +10,11 @@ import type { SamGovOpportunity } from '@/lib/samgov';
 const TABLE = 'opportunities';
 
 /** The shape the UI/assessment layer expects (same as live SAM mapping). */
-export type OpportunityRecord = SamGovOpportunity & { lastSyncedAt?: string | null };
+export type OpportunityRecord = SamGovOpportunity & {
+  lastSyncedAt?: string | null;
+  /** When this opportunity was first ingested into our DB (drives "new" feed). */
+  ingestedAt?: string | null;
+};
 
 export interface QueryOptions {
   keyword?: string;
@@ -46,6 +50,7 @@ function rowToRecord(r: Record<string, any>): OpportunityRecord {
     estimatedValue: r.estimated_value ?? null,
     sourceUrl: r.source_url,
     lastSyncedAt: r.last_synced_at ?? null,
+    ingestedAt: r.created_at ?? null,
   };
 }
 

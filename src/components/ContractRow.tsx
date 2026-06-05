@@ -22,12 +22,12 @@ interface ContractRowProps {
     descriptionUrl?: string | null;
     value: string;
     estimatedValue?: number | null;
-    naicsCode?: string;
-    pscCode?: string;
-    setAsideType?: string;
-    placeOfPerformance?: string;
-    responseDeadline?: string | number | Date;
-    sourceUrl?: string;
+    naicsCode?: string | null;
+    pscCode?: string | null;
+    setAsideType?: string | null;
+    placeOfPerformance?: string | null;
+    responseDeadline?: string | number | Date | null;
+    sourceUrl?: string | null;
     assessment: OpportunityAssessment;
     checklist: Checklist;
   };
