@@ -1,8 +1,8 @@
 export const dynamic = 'force-dynamic';
 import { listOpportunities, searchOpportunities } from '@/lib/dataconnect';
 import { searchSamGovLive } from '@/lib/samgov';
-import { readProfile, hasProfile, type AgencyProfile } from '@/lib/profile';
-import { scoreOpportunity } from '@/lib/ranking';
+import { readProfile, hasProfile } from '@/lib/profile';
+import { computeAssessment } from '@/lib/assessment';
 import ContractRow from '@/components/ContractRow';
 import SearchInput from '@/components/SearchInput';
 import FilterModal from '@/components/FilterModal';
@@ -76,17 +76,17 @@ export default async function SearchPage({
     }
   }
 
-  // Rank by agency relevance, then filter by radius (remote-eligible work always
-  // passes). Keep everything when radius is maxed (statewide+).
-  const scored = opportunities.map((o) => ({ o, rank: scoreOpportunity(o, profile, radius) }));
+  // Assess every result (deterministic, three-group score), then filter by radius
+  // (remote-eligible work always passes) and sort by match score.
+  const assessed = opportunities.map((o) => ({ o, a: computeAssessment(o, profile, radius) }));
   const radiusFiltered =
     radius >= 100
-      ? scored
-      : scored.filter(({ rank }) => rank.withinRadius || rank.remoteEligible);
-  radiusFiltered.sort((a, b) => b.rank.total - a.rank.total);
-  const hiddenByRadius = scored.length - radiusFiltered.length;
+      ? assessed
+      : assessed.filter(({ a }) => a.withinRadius || a.remoteEligible);
+  radiusFiltered.sort((x, y) => y.a.matchScore - x.a.matchScore);
+  const hiddenByRadius = assessed.length - radiusFiltered.length;
 
-  const displayData = radiusFiltered.map(({ o, rank }) => ({
+  const displayData = radiusFiltered.map(({ o, a }) => ({
     id: o.noticeId,
     title: o.title,
     agency: o.agency,
@@ -94,30 +94,14 @@ export default async function SearchPage({
     descriptionUrl: o.descriptionUrl ?? null,
     value: formatContractValue(o.estimatedValue),
     estimatedValue: o.estimatedValue ?? null,
-    fit: 0,
-    match: 'Expand to assess',
     naicsCode: o.naicsCode,
     pscCode: o.pscCode,
     setAsideType: o.setAsideType,
     placeOfPerformance: o.placeOfPerformance,
     responseDeadline: o.responseDeadline,
     sourceUrl: o.sourceUrl,
-    remoteEligible: rank.remoteEligible,
-    distanceMiles: rank.distanceMiles,
-    matchReasons: rank.reasons,
+    assessment: a,
   }));
-
-  const clientProfile: AgencyProfile = {
-    services: profile.services,
-    industries: profile.industries,
-    certifications: profile.certifications,
-    location: profile.location,
-    serviceRadiusMiles: profile.serviceRadiusMiles,
-    remotePreference: profile.remotePreference,
-    minContract: profile.minContract,
-    maxContract: profile.maxContract,
-    keywords: profile.keywords,
-  };
 
   return (
     <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -178,7 +162,7 @@ export default async function SearchPage({
             )}
           </div>
         ) : (
-          displayData.map((opp) => <ContractRow key={opp.id} opp={opp} agencyProfile={clientProfile} />)
+          displayData.map((opp) => <ContractRow key={opp.id} opp={opp} />)
         )}
       </div>
     </div>
