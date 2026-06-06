@@ -17,37 +17,68 @@ interface Columns {
   };
 }
 
-const initialColumns: Columns = {
-  saved: {
-    name: 'Saved',
-    items: [
-      { id: 'c1', title: 'Cloud Infrastructure Migration Support', agency: 'Department of Energy', value: '$3.2M' },
-      { id: 'c2', title: 'Cybersecurity Threat Analysis', agency: 'Department of Defense', value: '$1.5M' },
-    ]
-  },
-  evaluating: {
-    name: 'Evaluating',
-    items: [
-      { id: 'c3', title: 'Legacy System Maintenance', agency: 'Veterans Affairs', value: '$850K' },
-    ]
-  },
-  bidding: {
-    name: 'Writing Proposal',
-    items: []
-  },
-  submitted: {
-    name: 'Submitted',
-    items: []
-  }
+/** Column ids must match PIPELINE_STATUSES in src/lib/pipeline.ts. */
+const COLUMN_ORDER = ['saved', 'evaluating', 'bidding', 'submitted'] as const;
+const COLUMN_NAMES: Record<string, string> = {
+  saved: 'Saved',
+  evaluating: 'Evaluating',
+  bidding: 'Writing Proposal',
+  submitted: 'Submitted',
 };
 
+function emptyColumns(): Columns {
+  return COLUMN_ORDER.reduce((acc, id) => {
+    acc[id] = { name: COLUMN_NAMES[id], items: [] };
+    return acc;
+  }, {} as Columns);
+}
+
+interface SavedItem {
+  noticeId: string;
+  title: string;
+  agency: string;
+  status: string;
+  value: string | null;
+}
+
 export default function KanbanBoard() {
-  const [columns, setColumns] = useState<Columns>(initialColumns);
+  const [columns, setColumns] = useState<Columns>(emptyColumns());
+  const [loading, setLoading] = useState(true);
   // Fix for hydration issues with react-beautiful-dnd clones
   const [isBrowser, setIsBrowser] = useState(false);
-  
+
   useEffect(() => {
     setIsBrowser(true);
+  }, []);
+
+  // Load the user's saved opportunities and bucket them into columns.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/pipeline');
+        const data = await res.json();
+        if (cancelled) return;
+        const next = emptyColumns();
+        for (const it of (data.items as SavedItem[]) || []) {
+          const colId = COLUMN_ORDER.includes(it.status as (typeof COLUMN_ORDER)[number]) ? it.status : 'saved';
+          next[colId].items.push({
+            id: it.noticeId,
+            title: it.title,
+            agency: it.agency,
+            value: it.value || 'TBD',
+          });
+        }
+        setColumns(next);
+      } catch (err) {
+        console.error('Failed to load pipeline:', err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const onDragEnd = async (result: DropResult) => {
@@ -71,7 +102,7 @@ export default function KanbanBoard() {
       // Optimistically update the database
       try {
         await fetch('/api/pipeline', {
-          method: 'POST',
+          method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             id: draggableId,
@@ -97,6 +128,19 @@ export default function KanbanBoard() {
 
   if (!isBrowser) return null; // Prevents server-side hydration mismatch for drag-and-drop
 
+  const totalItems = Object.values(columns).reduce((n, c) => n + c.items.length, 0);
+  if (!loading && totalItems === 0) {
+    return (
+      <div className="glass-panel" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <p style={{ fontSize: '1.1rem' }}>Your pipeline is empty.</p>
+        <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+          Find opportunities in <a href="/en/dashboard/search" style={{ color: 'var(--accent-primary)' }}>Search</a> or{' '}
+          <a href="/en/dashboard/recommendations" style={{ color: 'var(--accent-primary)' }}>Recommended for you</a> and click <strong>Add to Pipeline</strong>.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', gap: '1.5rem', overflowX: 'auto', paddingBottom: '1rem', minHeight: '65vh' }}>
       <DragDropContext onDragEnd={onDragEnd}>
@@ -113,7 +157,7 @@ export default function KanbanBoard() {
             }}>
               {column.name}
               <span style={{ 
-                background: 'rgba(255,255,255,0.1)', 
+                background: 'rgba(42, 51, 61,0.1)', 
                 padding: '0.1rem 0.5rem', 
                 borderRadius: '999px', 
                 fontSize: '0.75rem' 
@@ -128,7 +172,7 @@ export default function KanbanBoard() {
                   {...provided.droppableProps}
                   ref={provided.innerRef}
                   style={{
-                    background: snapshot.isDraggingOver ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                    background: snapshot.isDraggingOver ? 'rgba(42, 51, 61,0.05)' : 'rgba(42, 51, 61,0.02)',
                     padding: '1rem',
                     borderRadius: '12px',
                     border: '1px solid var(--border-color)',

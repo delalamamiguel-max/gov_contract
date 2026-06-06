@@ -13,6 +13,7 @@ import { computeChecklist, type ProposalChecklist } from '@/lib/checklist';
 export interface RecommendationItem {
   // Shape consumed by ContractRow (same as search results) + feed extras.
   id: string;
+  source: string | null;
   title: string;
   agency: string;
   description: string;
@@ -140,7 +141,9 @@ export async function getRecommendations(
   opts: RecommendationOptions = {}
 ): Promise<RecommendationsResult> {
   const radius = opts.radius ?? profile.serviceRadiusMiles ?? 50;
-  const minScore = opts.minScore ?? 40;
+  // Curated feed: only surface Good Match+ (>=60) in "For you". Search keeps the
+  // broader 40 threshold so users can still find weaker matches by querying.
+  const minScore = opts.minScore ?? 60;
   const limit = opts.limit ?? 50;
   const newSince = profile.lastFeedSeenAt ? new Date(profile.lastFeedSeenAt).getTime() : null;
   const isFirstVisit = newSince === null;
@@ -158,6 +161,7 @@ export async function getRecommendations(
 
   const toItem = (o: OpportunityRecord, a: OpportunityAssessment, isNew: boolean): RecommendationItem => ({
     id: o.noticeId,
+    source: o.source ?? null,
     title: o.title,
     agency: o.agency,
     description: o.description || 'No description text was available for this opportunity.',

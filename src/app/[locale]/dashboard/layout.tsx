@@ -1,5 +1,6 @@
-import { Shield, Search, LayoutDashboard, Settings, Bell, Sparkles } from 'lucide-react';
+import { Search, LayoutDashboard, Settings, Bell, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import BidFlareLogo from '@/components/BidFlareLogo';
 import { redirect } from 'next/navigation';
 import { readProfile, isOnboarded } from '@/lib/profile';
 import { getCurrentUser } from '@/lib/supabase/server';
@@ -31,23 +32,15 @@ export default async function DashboardLayout({
         {/* Sidebar */}
         <aside style={{
           width: '260px',
-          background: 'rgba(10, 10, 12, 0.6)',
+          background: 'rgba(255, 255, 255, 0.7)',
           backdropFilter: 'blur(12px)',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRight: '1px solid var(--border-color)',
           padding: '1.5rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '2rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{
-              background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-              borderRadius: '8px', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
-            }}>
-              <Shield size={20} color="white" />
-            </div>
-            <span style={{ fontWeight: 700, fontSize: '1.25rem' }}>GovContract</span>
-          </div>
+          <BidFlareLogo height={30} />
 
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flexGrow: 1 }}>
             <Link href={`/${locale}/dashboard/recommendations`} style={{

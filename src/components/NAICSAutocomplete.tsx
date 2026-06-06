@@ -119,9 +119,9 @@ export default function NAICSAutocomplete({ selectedCodes, onChange }: NAICSAuto
                   onClick={() => handleSelect(item.code)}
                   style={{
                     padding: '0.75rem 1rem', cursor: 'pointer', display: 'flex', gap: '0.5rem',
-                    borderBottom: '1px solid rgba(255,255,255,0.05)'
+                    borderBottom: '1px solid rgba(42, 51, 61,0.05)'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(42, 51, 61,0.05)')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
                   <span style={{ color: 'var(--accent-primary)', fontWeight: 600 }}>{item.code}</span>

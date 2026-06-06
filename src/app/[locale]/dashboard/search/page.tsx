@@ -71,6 +71,7 @@ export default async function SearchPage({
 
   const displayData = radiusFiltered.map(({ o, a }) => ({
     id: o.noticeId,
+    source: o.source ?? null,
     title: o.title,
     agency: o.agency,
     description: o.description || 'No description text was available for this opportunity.',

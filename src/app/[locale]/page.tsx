@@ -1,6 +1,7 @@
 import { useTranslations } from 'next-intl';
-import { ArrowRight, Search, Zap, Shield, Globe } from 'lucide-react';
+import { ArrowRight, Search, Zap, Globe } from 'lucide-react';
 import Link from 'next/link';
+import BidFlareLogo from '@/components/BidFlareLogo';
 
 export default function Home() {
   const t = useTranslations('Index');
@@ -13,19 +14,11 @@ export default function Home() {
         padding: '1.5rem 4rem',
         position: 'fixed', top: 0, left: 0, right: 0,
         zIndex: 50,
-        background: 'rgba(5, 5, 5, 0.4)',
+        background: 'rgba(255, 255, 255, 0.7)',
         backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+        borderBottom: '1px solid var(--border-color)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-            borderRadius: '8px', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
-          }}>
-            <Shield size={20} color="white" />
-          </div>
-          <span style={{ fontWeight: 700, fontSize: '1.25rem', letterSpacing: '-0.02em' }}>GovContract</span>
-        </div>
+        <BidFlareLogo height={30} />
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <Link href="/" style={{ color: 'var(--text-secondary)', fontWeight: 500, padding: '0.5rem 1rem' }}>{t('login')}</Link>
           <button className="btn btn-primary" style={{ padding: '0.6rem 1.25rem' }}>
@@ -47,7 +40,7 @@ export default function Home() {
         <div style={{
           position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)',
           width: '600px', height: '600px',
-          background: 'radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(139,92,246,0.1) 40%, rgba(0,0,0,0) 70%)',
+          background: 'radial-gradient(circle, rgba(26,169,201,0.15) 0%, rgba(54,242,166,0.10) 40%, rgba(0,0,0,0) 70%)',
           zIndex: -1, pointerEvents: 'none'
         }} />
 

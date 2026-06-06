@@ -31,7 +31,7 @@ export default function ProposalChecklist({ checklist }: { checklist: Checklist 
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
           <span>Ready</span><span>{summary.percentReady}%</span>
         </div>
-        <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 999 }}>
+        <div style={{ height: 6, background: 'rgba(42, 51, 61,0.08)', borderRadius: 999 }}>
           <div style={{ height: '100%', width: `${summary.percentReady}%`, background: '#34d399', borderRadius: 999 }} />
         </div>
       </div>
@@ -60,7 +60,7 @@ export default function ProposalChecklist({ checklist }: { checklist: Checklist 
 
       {/* Recommended steps */}
       {checklist.recommendedSteps.length > 0 && (
-        <div style={{ paddingTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ paddingTop: '0.5rem', borderTop: '1px solid rgba(42, 51, 61,0.08)' }}>
           <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.3rem' }}>Recommended next steps</p>
           <ol style={{ margin: 0, paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
             {checklist.recommendedSteps.map((s, i) => (

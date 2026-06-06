@@ -15,7 +15,7 @@ export default function SearchLoading() {
               height: 96,
               opacity: 0.5,
               background:
-                'linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%)',
+                'linear-gradient(90deg, rgba(42, 51, 61,0.03) 25%, rgba(42, 51, 61,0.06) 50%, rgba(42, 51, 61,0.03) 75%)',
               backgroundSize: '200% 100%',
               animation: 'shimmer 1.4s ease infinite',
             }}

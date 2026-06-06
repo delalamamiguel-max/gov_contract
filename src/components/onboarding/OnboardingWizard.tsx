@@ -60,7 +60,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
         fontSize: '0.875rem',
         cursor: 'pointer',
         border: active ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-        background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
+        background: active ? 'rgba(59,130,246,0.15)' : 'rgba(42, 51, 61,0.03)',
         color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
         display: 'flex', alignItems: 'center', gap: '0.35rem', transition: 'all 0.15s ease',
       }}
@@ -190,7 +190,7 @@ export default function OnboardingWizard() {
           <span>Step {step + 1} of {STEPS.length} · {STEPS[step]}</span>
           <span>{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
         </div>
-        <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 999 }}>
+        <div style={{ height: 6, background: 'rgba(42, 51, 61,0.08)', borderRadius: 999 }}>
           <div style={{
             height: '100%', width: `${((step + 1) / STEPS.length) * 100}%`,
             background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))',

@@ -31,7 +31,7 @@ function chip(active: boolean) {
   return {
     padding: '0.35rem 0.7rem', borderRadius: 999, fontSize: '0.8rem', cursor: 'pointer',
     border: active ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-    background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
+    background: active ? 'rgba(59,130,246,0.15)' : 'rgba(42, 51, 61,0.03)',
     color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
   } as React.CSSProperties;
 }
@@ -260,7 +260,7 @@ export default function AlertsManager() {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                   <h3 style={{ fontSize: '1.1rem' }}>{a.name}</h3>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: 999, background: a.enabled ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.06)', color: a.enabled ? '#34d399' : 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, padding: '0.15rem 0.5rem', borderRadius: 999, background: a.enabled ? 'rgba(16,185,129,0.15)' : 'rgba(42, 51, 61,0.06)', color: a.enabled ? '#34d399' : 'var(--text-muted)' }}>
                     {a.enabled ? 'On' : 'Off'}
                   </span>
                 </div>
@@ -283,7 +283,7 @@ export default function AlertsManager() {
 
             {/* Matches */}
             {matches[a.id] && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '0.75rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', borderTop: '1px solid rgba(42, 51, 61,0.08)', paddingTop: '0.75rem' }}>
                 {matches[a.id].error ? (
                   <p style={{ fontSize: '0.85rem', color: '#fbbf24' }}>{matches[a.id].error}</p>
                 ) : matches[a.id].count === 0 ? (

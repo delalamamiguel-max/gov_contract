@@ -1,29 +1,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Ultra-Premium Dark Mode Palette */
-  --bg-color: #050505;
-  --bg-gradient: radial-gradient(circle at 50% -20%, #1a1a2e, #050505);
-  --surface-primary: rgba(255, 255, 255, 0.03);
-  --surface-secondary: rgba(255, 255, 255, 0.05);
-  
-  --text-primary: #f8f9fa;
-  --text-secondary: #a0a0ab;
-  --text-muted: #6b6b76;
-  
-  --accent-primary: #3b82f6;
-  --accent-secondary: #8b5cf6;
-  --accent-glow: rgba(59, 130, 246, 0.5);
-  
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(255, 255, 255, 0.15);
+  /* BidFlare "Paper" light palette
+     Tech Cyan #1AA9C9 · Flare Mint #36F2A6 · Dark Steel #2A333D
+     Grid Grey #C9D2D9 · Ink #14110F · Paper #FFFFFF */
+  --bg-color: #FFFFFF;
+  --bg-gradient: radial-gradient(circle at 50% -20%, #E8F7FB, #FFFFFF 60%);
+  --surface-primary: rgba(20, 17, 15, 0.03);
+  --surface-secondary: rgba(20, 17, 15, 0.05);
+
+  --text-primary: #2A333D;     /* Dark Steel */
+  --text-secondary: #5B6571;
+  --text-muted: #8A939C;
+
+  --accent-primary: #1AA9C9;   /* Tech Cyan */
+  --accent-secondary: #36F2A6; /* Flare Mint */
+  --accent-secondary-soft: rgba(54, 242, 166, 0.15);
+  --accent-glow: rgba(26, 169, 201, 0.30);
+
+  --border-color: rgba(42, 51, 61, 0.12);
+  --border-glow: rgba(26, 169, 201, 0.45);
 
   --font-sans: 'Outfit', sans-serif;
-  
-  --glass-bg: rgba(10, 10, 12, 0.6);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
-  --glass-blur: blur(24px);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: 1px solid rgba(42, 51, 61, 0.10);
+  --glass-blur: blur(20px);
+  --glass-shadow: 0 8px 32px 0 rgba(42, 51, 61, 0.12);
 }
 
 * {
@@ -62,7 +65,7 @@ a {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  background: linear-gradient(90deg, transparent, rgba(26,169,201,0.25), transparent);
 }
 
 /* Base Buttons */
@@ -88,7 +91,8 @@ a {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  color: white;
+  color: #14110F; /* Ink — legible on the cyan→mint gradient */
+  font-weight: 600;
   box-shadow: 0 4px 12px var(--accent-glow);
 }
 .btn-primary:hover {
@@ -112,7 +116,7 @@ a {
   padding: 0.75rem 1rem;
   border-radius: 8px;
   border: 1px solid var(--border-color);
-  background: rgba(0,0,0,0.2);
+  background: #FFFFFF;
   color: var(--text-primary);
   font-family: var(--font-sans);
   outline: none;
@@ -120,7 +124,7 @@ a {
 }
 .form-input:focus {
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px rgba(26, 169, 201, 0.2);
 }
 
 /* Animations */

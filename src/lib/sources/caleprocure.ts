@@ -33,6 +33,24 @@ interface CaleprocureItem {
   [k: string]: unknown;
 }
 
+const CALEPROCURE_SEARCH = 'https://caleprocure.ca.gov/pages/Events-BS3/event-search.aspx';
+
+/**
+ * Best-effort solicitation URL for a Cal eProcure event.
+ *
+ * The canonical per-event detail URL is only reliably available when the Apify
+ * actor captures it (`item.url`). Cal eProcure's guest event-detail route is a
+ * PeopleSoft endpoint that requires the department business-unit code we don't
+ * have at listing level, so a constructed detail link would 404. Until the actor
+ * emits real per-event URLs (tracked follow-up), fall back to the public event
+ * search pre-seeded with the event id so the user lands one click from the event
+ * instead of an empty search page.
+ */
+function caleprocureEventUrl(eventId: string, actorUrl?: string): string {
+  if (actorUrl && /^https?:\/\//i.test(actorUrl)) return actorUrl;
+  return eventId ? `${CALEPROCURE_SEARCH}?searchText=${encodeURIComponent(eventId)}` : CALEPROCURE_SEARCH;
+}
+
 function parseDeadline(endDate?: string, endRaw?: string): string | null {
   for (const v of [endDate, endRaw]) {
     if (!v) continue;
@@ -57,7 +75,7 @@ export function mapCaleprocureRecord(item: CaleprocureItem): Record<string, unkn
   return {
     source: SOURCE,
     source_id: eventId,
-    source_url: item.url || 'https://caleprocure.ca.gov/pages/Events-BS3/event-search.aspx',
+    source_url: caleprocureEventUrl(eventId, item.url),
     title,
     description:
       `California State bid opportunity from ${dept}.` +

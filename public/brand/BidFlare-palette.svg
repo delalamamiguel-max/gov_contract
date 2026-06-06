@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 460" width="760" height="460" role="img" aria-label="BidFlare color palette">
+  <title>BidFlare color palette</title>
+  <defs>
+    
+  </defs>
+  <rect width="760" height="460" fill="#FFFFFF"></rect>
+
+  
+  <g transform="translate(40,40)">
+    <rect width="208" height="120" rx="14" fill="#1AA9C9"></rect>
+    <text class="nm" x="0" y="158">Tech Cyan</text>
+    <text class="rl" x="0" y="178">Base · digital, sorting</text>
+    <text class="hx" x="0" y="200">#1AA9C9 · 26 169 201</text>
+  </g>
+  <g transform="translate(276,40)">
+    <rect width="208" height="120" rx="14" fill="#36F2A6"></rect>
+    <text class="nm" x="0" y="158">Flare Mint</text>
+    <text class="rl" x="0" y="178">Accent · the found opportunity</text>
+    <text class="hx" x="0" y="200">#36F2A6 · 54 242 166</text>
+  </g>
+  <g transform="translate(512,40)">
+    <rect width="208" height="120" rx="14" fill="#2A333D"></rect>
+    <text class="nm" x="0" y="158">Dark Steel</text>
+    <text class="rl" x="0" y="178">Wordmark · type, UI text</text>
+    <text class="hx" x="0" y="200">#2A333D · 42 51 61</text>
+  </g>
+
+  
+  <g transform="translate(40,250)">
+    <rect width="208" height="120" rx="14" fill="#C9D2D9"></rect>
+    <text class="nm" x="0" y="158">Grid Grey</text>
+    <text class="rl" x="0" y="178">Neutral · the noise</text>
+    <text class="hx" x="0" y="200">#C9D2D9 · 201 210 217</text>
+  </g>
+  <g transform="translate(276,250)">
+    <rect width="208" height="120" rx="14" fill="#14110F"></rect>
+    <text class="nm" x="0" y="158">Ink</text>
+    <text class="rl" x="0" y="178">Mono mark · max contrast</text>
+    <text class="hx" x="0" y="200">#14110F · 20 17 15</text>
+  </g>
+  <g transform="translate(512,250)">
+    <rect width="208" height="120" rx="14" fill="#FFFFFF" stroke="#E3E7EB" stroke-width="1.5"></rect>
+    <text class="nm" x="0" y="158">Paper</text>
+    <text class="rl" x="0" y="178">Background · clean white</text>
+    <text class="hx" x="0" y="200">#FFFFFF · 255 255 255</text>
+  </g>
+</svg>

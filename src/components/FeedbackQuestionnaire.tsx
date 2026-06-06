@@ -16,7 +16,7 @@ function Choice<T extends string>({ label, options, value, onChange }: { label: 
             <button key={o} type="button" onClick={() => onChange(o)} style={{
               padding: '0.3rem 0.7rem', borderRadius: 999, fontSize: '0.8rem', cursor: 'pointer', textTransform: 'capitalize',
               border: active ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-              background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
+              background: active ? 'rgba(59,130,246,0.15)' : 'rgba(42, 51, 61,0.03)',
               color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
             }}>{o}</button>
           );
@@ -64,7 +64,7 @@ export default function FeedbackQuestionnaire({ noticeId, opportunityTitle }: { 
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', padding: '1rem', background: 'rgba(42, 51, 61,0.02)', borderRadius: 8, border: '1px solid var(--border-color)' }}>
       <p style={{ fontSize: '0.9rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.4rem' }}><MessageSquare size={15} /> Quick feedback</p>
       <Choice label="Is this opportunity relevant?" options={['yes', 'no']} value={a.relevant} onChange={(v) => set('relevant', v)} />
       <Choice label="Contract size" options={['too small', 'right size', 'too large']} value={a.sizeFit} onChange={(v) => set('sizeFit', v)} />
@@ -87,7 +87,7 @@ export default function FeedbackQuestionnaire({ noticeId, opportunityTitle }: { 
               <button key={s} type="button" onClick={() => togglePrio(s)} style={{
                 padding: '0.25rem 0.55rem', borderRadius: 999, fontSize: '0.75rem', cursor: 'pointer',
                 border: active ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-                background: active ? 'rgba(59,130,246,0.15)' : 'rgba(255,255,255,0.03)',
+                background: active ? 'rgba(59,130,246,0.15)' : 'rgba(42, 51, 61,0.03)',
                 color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
               }}>{s}</button>
             );

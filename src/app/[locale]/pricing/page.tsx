@@ -33,10 +33,10 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex flex-col items-center py-20 px-4">
       <div className="max-w-3xl text-center mb-12">
         <h1 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">
-          Unlock the Full Power of GovContract AI
+          Unlock the Full Power of BidFlare
         </h1>
         <p className="text-lg text-slate-600">
-          Your free trial has ended. Upgrade to Pro to continue discovering, evaluating, and managing federal contracts seamlessly.
+          Your free trial has ended. Upgrade to Pro to continue discovering, evaluating, and managing California contracts seamlessly.
         </p>
       </div>
 

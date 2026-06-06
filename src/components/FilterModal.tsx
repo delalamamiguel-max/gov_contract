@@ -27,7 +27,7 @@ export default function FilterModal() {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Filter Contracts</h2>
-              <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer' }}>
+              <button onClick={() => setIsOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}>
                 <X size={20} />
               </button>
             </div>
@@ -35,8 +35,8 @@ export default function FilterModal() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Set-Aside Type</label>
               <select style={{
-                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)',
-                padding: '0.75rem', borderRadius: '8px', color: 'white'
+                background: 'rgba(42, 51, 61,0.05)', border: '1px solid var(--border-color)',
+                padding: '0.75rem', borderRadius: '8px', color: 'var(--text-primary)'
               }}>
                 <option value="all">All</option>
                 <option value="sb">Small Business (Total)</option>
@@ -48,8 +48,8 @@ export default function FilterModal() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Agency</label>
               <input type="text" placeholder="e.g. Department of Defense" style={{
-                background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)',
-                padding: '0.75rem', borderRadius: '8px', color: 'white'
+                background: 'rgba(42, 51, 61,0.05)', border: '1px solid var(--border-color)',
+                padding: '0.75rem', borderRadius: '8px', color: 'var(--text-primary)'
               }} />
             </div>
 

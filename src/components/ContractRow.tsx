@@ -16,6 +16,7 @@ interface ContractRowProps {
   radius?: number;
   opp: {
     id: string | number;
+    source?: string | null;
     title: string;
     agency: string;
     description?: string;
@@ -33,9 +34,17 @@ interface ContractRowProps {
   };
 }
 
+/** Human label for the "view full solicitation" link, by ingestion source. */
+const sourceLinkLabel: Record<string, string> = {
+  'sam.gov': 'View on SAM.gov',
+  caleprocure: 'View on Cal eProcure',
+  'dgs-ncb': 'View on CA DGS',
+  caltrans: 'View on Caltrans',
+};
+
 const labelChip: Record<MatchLabel, { bg: string; fg: string }> = {
   'Strong Match': { bg: 'rgba(16,185,129,0.2)', fg: '#34d399' },
-  'Good Match': { bg: 'rgba(59,130,246,0.2)', fg: '#60a5fa' },
+  'Good Match': { bg: 'rgba(26,169,201,0.18)', fg: '#1AA9C9' },
   'Possible Match': { bg: 'rgba(245,158,11,0.2)', fg: '#fbbf24' },
   'Weak Match': { bg: 'rgba(239,68,68,0.2)', fg: '#f87171' },
 };
@@ -90,9 +99,36 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
     if (t === 'rfp') void runRfp();
   };
 
-  const handleAdd = (e: React.MouseEvent) => {
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
+
+  const handleAdd = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setAdded(true);
+    if (added || adding) return;
+    setAdding(true);
+    setAddError(null);
+    try {
+      const res = await fetch('/api/pipeline', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: String(opp.id),
+          title: opp.title,
+          agency: opp.agency,
+          value: opp.value,
+          source: opp.source ?? null,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Could not add to pipeline.');
+      }
+      setAdded(true);
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Could not add to pipeline.');
+    } finally {
+      setAdding(false);
+    }
   };
 
   const loadFullDescription = async () => {
@@ -129,7 +165,7 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
         cursor: 'pointer',
         transition: 'all 0.3s ease',
         border: expanded ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-        background: expanded ? 'rgba(59, 130, 246, 0.05)' : 'rgba(255, 255, 255, 0.03)',
+        background: expanded ? 'rgba(26, 169, 201, 0.06)' : 'rgba(42, 51, 61, 0.03)',
       }}
       onClick={toggleExpand}
     >
@@ -155,12 +191,12 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
               </span>
             )}
             {typeof a.distanceMiles === 'number' && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: 4, background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: 4, background: 'rgba(42, 51, 61,0.05)', color: 'var(--text-muted)' }}>
                 <MapPin size={11} /> ~{a.distanceMiles} mi
               </span>
             )}
             {a.whyFits.slice(0, 2).map((r) => (
-              <span key={r} style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: 4, background: 'rgba(59,130,246,0.12)', color: 'var(--accent-primary)' }}>
+              <span key={r} style={{ fontSize: '0.7rem', padding: '0.15rem 0.45rem', borderRadius: 4, background: 'rgba(26,169,201,0.12)', color: 'var(--accent-primary)' }}>
                 {r.length > 40 ? r.slice(0, 38) + '…' : r}
               </span>
             ))}
@@ -171,10 +207,11 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
           <button
             className={`btn ${added ? 'btn-secondary' : 'btn-primary'}`}
             onClick={handleAdd}
-            disabled={added}
+            disabled={added || adding}
+            title={addError || undefined}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
           >
-            {added ? 'In Pipeline' : <><Plus size={16} /> Add to Pipeline</>}
+            {added ? 'In Pipeline' : adding ? 'Adding…' : <><Plus size={16} /> Add to Pipeline</>}
           </button>
           <div style={{ color: 'var(--text-muted)' }}>
             {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -187,7 +224,7 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
           style={{
             marginTop: '1.5rem',
             paddingTop: '1.5rem',
-            borderTop: '1px solid rgba(255,255,255,0.1)',
+            borderTop: '1px solid rgba(42, 51, 61,0.1)',
             display: 'flex',
             flexDirection: 'column',
             gap: '1rem',
@@ -195,7 +232,7 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
           }}
         >
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.08)' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid rgba(42, 51, 61,0.08)' }} onClick={(e) => e.stopPropagation()}>
             {([['assessment', 'Assessment'], ['readiness', 'Proposal Readiness'], ['rfp', 'RFP Workflow']] as [Tab, string][]).map(([key, label]) => (
               <button
                 key={key}
@@ -275,7 +312,7 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
           {opp.sourceUrl && (
             <a href={opp.sourceUrl} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}
               style={{ fontSize: '0.85rem', color: 'var(--accent-primary)' }}>
-              View full solicitation on SAM.gov →
+              {(opp.source && sourceLinkLabel[opp.source]) || 'View full solicitation'} →
             </a>
           )}
         </div>

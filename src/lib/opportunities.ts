@@ -9,8 +9,17 @@ import type { SamGovOpportunity } from '@/lib/samgov';
 
 const TABLE = 'opportunities';
 
+// California-only (MVP). Keep rows from the CA-native sources, plus any other
+// source (e.g. sam.gov federal) whose place of performance is in California.
+// Applied to every user-facing read so non-CA / seed rows never surface.
+// PostgREST `.or()` filter string — shared by search, recommendations, counts.
+const CA_OR_FILTER =
+  'source.in.(caleprocure,dgs-ncb,caltrans),place_of_performance.ilike.%california%,place_of_performance.ilike.%, CA%';
+
 /** The shape the UI/assessment layer expects (same as live SAM mapping). */
 export type OpportunityRecord = SamGovOpportunity & {
+  /** Origin source: 'sam.gov' | 'caleprocure' | 'dgs-ncb' | 'caltrans'. Drives the solicitation link label. */
+  source?: string | null;
   lastSyncedAt?: string | null;
   /** When this opportunity was first ingested into our DB (drives "new" feed). */
   ingestedAt?: string | null;
@@ -35,6 +44,7 @@ export interface QueryResult {
 /** Map a DB row to the UI/assessment record shape. */
 function rowToRecord(r: Record<string, any>): OpportunityRecord {
   return {
+    source: r.source ?? null,
     noticeId: r.source_id,
     title: r.title,
     agency: r.agency,
@@ -86,7 +96,7 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
   if (!supabase) return { results: [], unavailable: true, error: 'Opportunity database is not configured.' };
 
   try {
-    let q = supabase.from(TABLE).select('*').eq('status', 'active');
+    let q = supabase.from(TABLE).select('*').eq('status', 'active').or(CA_OR_FILTER);
 
     if (opts.keyword && opts.keyword.trim()) {
       // Postgres full-text websearch over the generated tsvector column.
@@ -115,7 +125,7 @@ export async function countOpportunities(): Promise<number> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 0;
   try {
-    const { count } = await supabase.from(TABLE).select('id', { count: 'exact', head: true }).eq('status', 'active');
+    const { count } = await supabase.from(TABLE).select('id', { count: 'exact', head: true }).eq('status', 'active').or(CA_OR_FILTER);
     return count ?? 0;
   } catch {
     return 0;

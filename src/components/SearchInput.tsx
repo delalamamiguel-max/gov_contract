@@ -39,7 +39,7 @@ export default function SearchInput() {
         onChange={(e) => setQuery(e.target.value)}
         placeholder="Search by keywords, NAICS, or Agency..."
         style={{
-          background: 'transparent', border: 'none', color: 'white',
+          background: 'transparent', border: 'none', color: 'var(--text-primary)',
           width: '100%', fontSize: '1rem', outline: 'none',
           paddingRight: '2.75rem', // space for the icon on the right
           paddingTop: '0.25rem',

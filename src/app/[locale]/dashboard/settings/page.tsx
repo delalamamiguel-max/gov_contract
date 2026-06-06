@@ -46,14 +46,14 @@ export default function SettingsPage() {
         
         <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
           
-          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2rem' }}>
+          <div style={{ borderBottom: '1px solid rgba(42, 51, 61,0.1)', paddingBottom: '2rem' }}>
             <NAICSAutocomplete 
               selectedCodes={selectedNAICS} 
               onChange={setSelectedNAICS} 
             />
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '2rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', borderBottom: '1px solid rgba(42, 51, 61,0.1)', paddingBottom: '2rem' }}>
             <label style={{ fontWeight: 500, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
               Set-Aside Eligibility
             </label>

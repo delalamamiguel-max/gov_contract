@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 432 100" width="864" height="200" role="img" aria-label="BidFlare logo">
+  <title>BidFlare logo — color</title>
+  <defs>
+    
+    <radialGradient id="bf-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#36F2A6" stop-opacity="0.55"></stop>
+      <stop offset="45%" stop-color="#36F2A6" stop-opacity="0.20"></stop>
+      <stop offset="100%" stop-color="#36F2A6" stop-opacity="0"></stop>
+    </radialGradient>
+  </defs>
+  
+  <g fill="#C9D2D9">
+    <circle cx="12" cy="12" r="12"></circle>
+    <circle cx="50" cy="12" r="12"></circle>
+    <circle cx="88" cy="12" r="12"></circle>
+    <circle cx="12" cy="50" r="12"></circle>
+    <circle cx="88" cy="50" r="12"></circle>
+    <circle cx="12" cy="88" r="12"></circle>
+    <circle cx="50" cy="88" r="12"></circle>
+    <circle cx="88" cy="88" r="12"></circle>
+  </g>
+  <circle cx="50" cy="50" r="30" fill="url(#bf-glow)"></circle>
+  <circle cx="50" cy="50" r="13" fill="#36F2A6"></circle>
+  
+  <text class="bf-wm" x="132" y="50" font-size="62" dominant-baseline="central" fill="#2A333D"><tspan class="bf-bid">Bid</tspan><tspan class="bf-flare">Flare</tspan></text>
+</svg>

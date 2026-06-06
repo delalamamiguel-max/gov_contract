@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useLocale } from 'next-intl';
-import { Shield } from 'lucide-react';
+import BidFlareLogo from '@/components/BidFlareLogo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -64,17 +64,11 @@ export default function LoginPage() {
       <div className="glass-panel animate-fade-in" style={{ maxWidth: '440px', width: '100%', padding: '3rem', zIndex: 10 }}>
         
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
-            borderRadius: '12px', padding: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 20px var(--accent-glow)'
-          }}>
-            <Shield size={28} color="white" />
-          </div>
+          <BidFlareLogo height={40} />
         </div>
 
         <h1 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', textAlign: 'center', letterSpacing: '-0.02em' }}>Welcome Back</h1>
-        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1.05rem' }}>Securely access your GovContract dashboard.</p>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '2.5rem', fontSize: '1.05rem' }}>Securely access your BidFlare dashboard.</p>
 
         {error && (
           <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#ef4444', padding: '0.75rem', borderRadius: '8px', marginBottom: '1.5rem', fontSize: '0.875rem' }}>
@@ -105,7 +99,7 @@ export default function LoginPage() {
         </div>
 
         <button onClick={handleGoogleLogin} className="btn" style={{ 
-          width: '100%', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', padding: '0.875rem' 
+          width: '100%', background: 'rgba(42, 51, 61,0.05)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', padding: '0.875rem' 
         }} disabled={loading}>
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: 20, height: 20 }} />
           Google

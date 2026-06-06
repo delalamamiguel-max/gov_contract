@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 182" width="600" height="364" role="img" aria-label="BidFlare logo — vertical">
+  <title>BidFlare logo — vertical, black</title>
+  <defs>
+    
+  </defs>
+  <g transform="translate(100,6)">
+    <g fill="none" stroke="#14110F" stroke-width="2.2">
+      <circle cx="12" cy="12" r="11"></circle><circle cx="50" cy="12" r="11"></circle><circle cx="88" cy="12" r="11"></circle>
+      <circle cx="12" cy="50" r="11"></circle><circle cx="88" cy="50" r="11"></circle>
+      <circle cx="12" cy="88" r="11"></circle><circle cx="50" cy="88" r="11"></circle><circle cx="88" cy="88" r="11"></circle>
+    </g>
+    <circle cx="50" cy="50" r="12.5" fill="#14110F"></circle>
+  </g>
+  <text class="bf-wm" x="150" y="152" font-size="56" text-anchor="middle" dominant-baseline="central" fill="#14110F"><tspan font-weight="500">Bid</tspan><tspan font-weight="700">Flare</tspan></text>
+</svg>

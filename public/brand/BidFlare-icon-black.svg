@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 112 112" width="224" height="224" role="img" aria-label="BidFlare icon">
+  <title>BidFlare icon — black</title>
+  <g fill="none" stroke="#14110F" stroke-width="2.2">
+    <circle cx="12" cy="12" r="11"></circle>
+    <circle cx="50" cy="12" r="11"></circle>
+    <circle cx="88" cy="12" r="11"></circle>
+    <circle cx="12" cy="50" r="11"></circle>
+    <circle cx="88" cy="50" r="11"></circle>
+    <circle cx="12" cy="88" r="11"></circle>
+    <circle cx="50" cy="88" r="11"></circle>
+    <circle cx="88" cy="88" r="11"></circle>
+  </g>
+  <circle cx="50" cy="50" r="12.5" fill="#14110F"></circle>
+</svg>
