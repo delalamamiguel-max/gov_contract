@@ -1,0 +1,29 @@
+{
+  "title": "Cal eProcure Listings Input",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "status": {
+      "title": "Event status",
+      "type": "string",
+      "description": "P = Posted (open bids), H = Historical",
+      "editor": "select",
+      "enum": ["P", "H"],
+      "enumTitles": ["Posted (open)", "Historical"],
+      "default": "P"
+    },
+    "keyword": {
+      "title": "Keyword filter (optional)",
+      "type": "string",
+      "description": "If set, only events whose name matches this term are returned.",
+      "editor": "textfield"
+    },
+    "limit": {
+      "title": "Max results (optional)",
+      "type": "integer",
+      "description": "0 = no cap (return all distinct events).",
+      "default": 0,
+      "minimum": 0
+    }
+  }
+}

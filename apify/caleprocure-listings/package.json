@@ -1,0 +1,14 @@
+{
+  "name": "caleprocure-listings",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Cal eProcure open bid listings scraper (Apify actor)",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "apify": "^3.2.6",
+    "playwright": "1.60.0"
+  },
+  "scripts": {
+    "start": "node src/main.js"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "actorSpecification": 1,
+  "name": "caleprocure-listings",
+  "title": "Cal eProcure — Open Bids (Listings)",
+  "description": "Scrapes distinct open (Posted) bid opportunities from California's Cal eProcure public event search.",
+  "version": "0.1",
+  "buildTag": "latest",
+  "meta": { "templateId": "playwright" },
+  "input": "./input_schema.json",
+  "dockerfile": "../Dockerfile",
+  "storages": {
+    "dataset": {
+      "actorSpecification": 1,
+      "title": "Open CA bids",
+      "views": {
+        "overview": {
+          "title": "Overview",
+          "transformation": { "fields": ["eventId", "name", "department", "endDate", "status"] },
+          "display": { "component": "table" }
+        }
+      }
+    }
+  }
+}
