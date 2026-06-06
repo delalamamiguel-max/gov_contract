@@ -33,6 +33,13 @@ Post-RFP questionnaire answers (`answers jsonb`). Distilled into ranking signals
 Pipeline/saved items, keyed `(profile_key, notice_id)`. Foundation for the pipeline
 board (UI wiring pending).
 
+## Opportunity sources (multi-source ingestion)
+Opportunities are deduped per `(source, source_id)` and ingested by backend jobs only:
+- **`sam.gov`** — live federal opportunities (open to bid). `status='active'`. Ingested by `lib/ingest.ts`.
+- **`dgs-ncb`** — California DGS Approved Non-Competitive Bids (awarded sole-source contracts; market intelligence). `status='awarded'`, so they are **excluded from the active search/recommendations feed** (which filters `status='active'`). Ingested by `lib/sources/dgs.ts` via the CKAN DataStore API (data.ca.gov), resource id resolved at runtime. Standalone analysis utility: `scripts/dgs_ncb.py`.
+
+Both run via the daily `/api/cron/ingest` job (`?source=sam|dgs` runs one; `?force=1` bypasses the SAM throttle). Each run is logged to `sync_runs` (with its `source`).
+
 ## Derived, NOT stored
 - **Opportunity assessments** (Eligibility/Fit/Edge) and **proposal checklists** are
   computed deterministically on demand from the profile + opportunity. They are not
