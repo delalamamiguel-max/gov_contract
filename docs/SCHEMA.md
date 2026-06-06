@@ -36,9 +36,12 @@ board (UI wiring pending).
 ## Opportunity sources (multi-source ingestion)
 Opportunities are deduped per `(source, source_id)` and ingested by backend jobs only:
 - **`sam.gov`** — live federal opportunities (open to bid). `status='active'`. Ingested by `lib/ingest.ts`.
-- **`dgs-ncb`** — California DGS Approved Non-Competitive Bids (awarded sole-source contracts; market intelligence). `status='awarded'`, so they are **excluded from the active search/recommendations feed** (which filters `status='active'`). Ingested by `lib/sources/dgs.ts` via the CKAN DataStore API (data.ca.gov), resource id resolved at runtime. Standalone analysis utility: `scripts/dgs_ncb.py`.
+- **`dgs-ncb`** — California DGS Approved Non-Competitive Bids (awarded sole-source contracts; market intelligence). `status='awarded'`. Ingested by `lib/sources/dgs.ts`. Utility: `scripts/dgs_ncb.py`.
+- **`caltrans`** — Caltrans Early Development Project List (planned state highway/infrastructure projects). `status='planned'`. Ingested by `lib/sources/caltrans.ts`. Utility: `scripts/caltrans_projects.py`.
 
-Both run via the daily `/api/cron/ingest` job (`?source=sam|dgs` runs one; `?force=1` bypasses the SAM throttle). Each run is logged to `sync_runs` (with its `source`).
+The `dgs-ncb` (`awarded`) and `caltrans` (`planned`) rows are **excluded from the active search/recommendations feed** (which filters `status='active'`) — they're queryable market intelligence.
+
+All CKAN sources share `lib/sources/ckan.ts` (fetch/retry/pagination/upsert/run-logging) and resolve their resource id at runtime (data.ca.gov ids go stale). They run via the daily `/api/cron/ingest` job (`?source=sam|dgs|caltrans` runs one; `?force=1` bypasses the SAM throttle). Each run is logged to `sync_runs` with its `source`.
 
 ## Derived, NOT stored
 - **Opportunity assessments** (Eligibility/Fit/Edge) and **proposal checklists** are

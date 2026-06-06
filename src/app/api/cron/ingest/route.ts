@@ -3,17 +3,19 @@ export const maxDuration = 300; // allow a longer-running sync
 import { NextResponse } from 'next/server';
 import { syncOpportunities, shouldRunSync, getSyncConfig } from '@/lib/ingest';
 import { syncDgsNcb } from '@/lib/sources/dgs';
+import { syncCaltrans } from '@/lib/sources/caltrans';
 
 /**
  * GET /api/cron/ingest — scheduled opportunity ingestion into Supabase.
  *
  * Sources:
- *   - sam.gov  (live opportunities)        — throttled by SYNC_MIN_INTERVAL_HOURS
- *   - dgs-ncb  (CA DGS non-competitive bids)
+ *   - sam.gov   (live federal opportunities)     — throttled by SYNC_MIN_INTERVAL_HOURS
+ *   - dgs-ncb   (CA DGS non-competitive bids)
+ *   - caltrans  (CA highway/infrastructure project pipeline)
  *
  * Auth: requires `Authorization: Bearer ${CRON_SECRET}` (Vercel Cron sends this
  * automatically when CRON_SECRET is set).
- * Query: `?force=1` bypasses the throttle; `?source=sam|dgs` runs just one source.
+ * Query: `?force=1` bypasses the throttle; `?source=sam|dgs|caltrans` runs one source.
  */
 export async function GET(request: Request) {
   const expected = process.env.CRON_SECRET;
@@ -53,6 +55,13 @@ export async function GET(request: Request) {
     const dgs = await syncDgsNcb();
     results.dgs = dgs;
     if (dgs.status === 'error') anyError = true;
+  }
+
+  // Caltrans project pipeline (idempotent; runs each time)
+  if (!source || source === 'caltrans') {
+    const caltrans = await syncCaltrans();
+    results.caltrans = caltrans;
+    if (caltrans.status === 'error') anyError = true;
   }
 
   return NextResponse.json({ success: !anyError, results }, { status: anyError ? 502 : 200 });
