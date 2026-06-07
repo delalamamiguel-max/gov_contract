@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabase';
 import type { SamGovOpportunity } from '@/lib/samgov';
+import { caleprocureEventUrl } from '@/lib/sources/caleprocure';
 
 // ---------------------------------------------------------------------------
 // Opportunities data-access layer. ALL user-facing reads go through here and
@@ -45,6 +46,16 @@ export interface QueryResult {
 
 /** Map a DB row to the UI/assessment record shape. */
 function rowToRecord(r: Record<string, any>): OpportunityRecord {
+  // For Cal eProcure rows, regenerate the solicitation URL at read time so
+  // existing rows get the resolver-backed deep link without re-running the
+  // (paid) Apify actor.
+  const stored = r.source_url as string | null;
+  const actorUrl = (r.raw && typeof r.raw === 'object' ? (r.raw as any).url : null) ?? null;
+  const sourceUrl =
+    r.source === 'caleprocure'
+      ? caleprocureEventUrl(r.source_id, actorUrl || stored || undefined)
+      : stored;
+
   return {
     source: r.source ?? null,
     noticeId: r.source_id,
@@ -60,7 +71,7 @@ function rowToRecord(r: Record<string, any>): OpportunityRecord {
     postedDate: r.posted_date,
     responseDeadline: r.response_deadline ?? null,
     estimatedValue: r.estimated_value ?? null,
-    sourceUrl: r.source_url,
+    sourceUrl: sourceUrl ?? '',
     lastSyncedAt: r.last_synced_at ?? null,
     ingestedAt: r.created_at ?? null,
   };

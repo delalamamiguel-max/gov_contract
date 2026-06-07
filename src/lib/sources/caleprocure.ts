@@ -38,17 +38,28 @@ const CALEPROCURE_SEARCH = 'https://caleprocure.ca.gov/pages/Events-BS3/event-se
 /**
  * Best-effort solicitation URL for a Cal eProcure event.
  *
- * The canonical per-event detail URL is only reliably available when the Apify
- * actor captures it (`item.url`). Cal eProcure's guest event-detail route is a
- * PeopleSoft endpoint that requires the department business-unit code we don't
- * have at listing level, so a constructed detail link would 404. Until the actor
- * emits real per-event URLs (tracked follow-up), fall back to the public event
- * search pre-seeded with the event id so the user lands one click from the event
- * instead of an empty search page.
+ * Strategy (in order):
+ *   1. Use the actor-captured URL IFF it's a real per-event detail link
+ *      (must have query/hash params — not just the bare search page).
+ *   2. Otherwise, route the user through our own resolver
+ *      (`/api/caleprocure/<eventId>`) which knows how to deep-link to the
+ *      event preview page on Cal eProcure, falling back to the public
+ *      search page pre-seeded with the event id.
+ *
+ * This is exported so the read-side (opportunities.ts) can construct fresh
+ * links for already-stored rows without re-running the (paid) Apify actor.
  */
-function caleprocureEventUrl(eventId: string, actorUrl?: string): string {
-  if (actorUrl && /^https?:\/\//i.test(actorUrl)) return actorUrl;
-  return eventId ? `${CALEPROCURE_SEARCH}?searchText=${encodeURIComponent(eventId)}` : CALEPROCURE_SEARCH;
+export function caleprocureEventUrl(eventId: string, actorUrl?: string): string {
+  // Only trust the captured URL when it's clearly a per-event link, not
+  // the bare search page (which is what the actor currently emits).
+  if (actorUrl && /^https?:\/\//i.test(actorUrl) && /[?#]/.test(actorUrl)
+      && !actorUrl.replace(/[?#].*/, '').endsWith('event-search.aspx')) {
+    return actorUrl;
+  }
+  // Server-side resolver does the deep-linking; works for existing rows too.
+  return eventId
+    ? `/api/caleprocure/${encodeURIComponent(eventId)}`
+    : CALEPROCURE_SEARCH;
 }
 
 function parseDeadline(endDate?: string, endRaw?: string): string | null {
