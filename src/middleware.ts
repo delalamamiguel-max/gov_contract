@@ -18,24 +18,30 @@ export async function middleware(request: NextRequest) {
   const response = intlMiddleware(request);
 
   // Refresh the Supabase auth session so server components see a valid user.
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
+  // Wrap in try/catch — if auth/network hiccups here, the page must still load
+  // (otherwise a transient Supabase blip would 500 every dashboard request).
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (url && key) {
+    try {
+      const supabase = createServerClient(url, key, {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              request.cookies.set(name, value);
+              response.cookies.set(name, value, options);
+            });
+          },
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            request.cookies.set(name, value);
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
+      });
+      await supabase.auth.getUser();
+    } catch (e) {
+      console.warn('[middleware] supabase.auth.getUser failed:', e instanceof Error ? e.message : e);
     }
-  );
-  await supabase.auth.getUser();
+  }
 
   return response;
 }

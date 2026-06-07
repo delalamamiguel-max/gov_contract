@@ -26,7 +26,13 @@ export default function LoginPage() {
       router.push(`/${locale}/dashboard/recommendations`);
       router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      // "Failed to fetch" usually means a network/CORS/extension issue rather
+      // than bad credentials. Surface a more helpful hint when we see it.
+      const raw = err?.message || '';
+      const friendly = /failed to fetch|networkerror|load failed/i.test(raw)
+        ? "Couldn't reach the auth service. Disable any ad-blocker / privacy extension for this site or try an incognito window, then retry."
+        : raw || 'Failed to sign in. Please check your credentials.';
+      setError(friendly);
     } finally {
       setLoading(false);
     }

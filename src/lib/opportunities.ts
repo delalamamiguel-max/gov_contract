@@ -10,11 +10,13 @@ import type { SamGovOpportunity } from '@/lib/samgov';
 const TABLE = 'opportunities';
 
 // California-only (MVP). Keep rows from the CA-native sources, plus any other
-// source (e.g. sam.gov federal) whose place of performance is in California.
-// Applied to every user-facing read so non-CA / seed rows never surface.
-// PostgREST `.or()` filter string — shared by search, recommendations, counts.
+// source whose place of performance mentions California. Applied to every
+// user-facing read so non-CA / seed rows never surface.
+// NOTE: PostgREST `.or()` treats commas as filter separators — values MUST NOT
+// contain literal commas (e.g. `%, CA%` here would silently break the parser).
+// The `%california%` clause covers ~all CA SAM.gov rows already.
 const CA_OR_FILTER =
-  'source.in.(caleprocure,dgs-ncb,caltrans),place_of_performance.ilike.%california%,place_of_performance.ilike.%, CA%';
+  'source.in.(caleprocure,dgs-ncb,caltrans),place_of_performance.ilike.%california%';
 
 /** The shape the UI/assessment layer expects (same as live SAM mapping). */
 export type OpportunityRecord = SamGovOpportunity & {
