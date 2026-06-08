@@ -1,15 +1,18 @@
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { EmailOtpType } from '@supabase/supabase-js';
-import { getSupabaseServer } from '@/lib/supabase/server';
+import { AUTH_STORAGE_KEY } from '@/lib/supabase/storageKey';
 
 /**
- * Email confirmation handler. Supabase's confirmation/magic links land here.
+ * Email confirmation handler (OTP token_hash and PKCE code flows).
  *
- * Supports both link styles so it works no matter how the email template is set:
- *  - token_hash + type  → verifyOtp (works cross-browser, no PKCE cookie needed)
- *  - code               → exchangeCodeForSession (PKCE, same-browser)
+ * Same pattern as /auth/callback: we wire the Supabase client directly to
+ * request.cookies / response.cookies so that the session Set-Cookie headers
+ * are included in the redirect response we return to the browser.
  *
- * On success we set the auth cookies and redirect to `next`.
+ * Using getSupabaseServer() here would write cookies via Next.js's cookies()
+ * store — a separate object from the NextResponse — so those Set-Cookie
+ * headers would never reach the browser. This inline client avoids that bug.
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -18,15 +21,38 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const next = searchParams.get('next') || '/en/onboarding';
 
-  const supabase = await getSupabaseServer();
+  const successUrl = `${origin}${next}`;
+  const errorUrl = `${origin}/en/login?error=confirm_failed`;
+
+  const makeClient = (response: NextResponse) =>
+    createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookieOptions: { name: AUTH_STORAGE_KEY },
+        cookies: {
+          getAll() {
+            return (request as any).cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              (request as any).cookies.set(name, value);
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
 
   if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    const response = NextResponse.redirect(successUrl);
+    const { error } = await makeClient(response).auth.verifyOtp({ type, token_hash: tokenHash });
+    if (!error) return response;
   } else if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${next}`);
+    const response = NextResponse.redirect(successUrl);
+    const { error } = await makeClient(response).auth.exchangeCodeForSession(code);
+    if (!error) return response;
   }
 
-  return NextResponse.redirect(`${origin}/en/login?error=confirm_failed`);
+  return NextResponse.redirect(errorUrl);
 }
