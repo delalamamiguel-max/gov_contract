@@ -2,6 +2,7 @@ import createMiddleware from 'next-intl/middleware';
 import { routing } from './i18n/routing';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { AUTH_STORAGE_KEY } from './lib/supabase/storageKey';
 
 const intlMiddleware = createMiddleware(routing);
 
@@ -25,6 +26,7 @@ export async function middleware(request: NextRequest) {
   if (url && key) {
     try {
       const supabase = createServerClient(url, key, {
+        cookieOptions: { name: AUTH_STORAGE_KEY },
         cookies: {
           getAll() {
             return request.cookies.getAll();

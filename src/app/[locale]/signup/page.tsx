@@ -29,7 +29,15 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      // Tell Supabase where the confirmation link should land. Without this it
+      // falls back to the project's Site URL (defaults to localhost:3000),
+      // which is why the emailed link sent deployed users to localhost.
+      const emailRedirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent(`/${locale}/onboarding`)}`;
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo },
+      });
       if (error) throw error;
       if (data.session) {
         // Email confirmation is off — straight into onboarding.
