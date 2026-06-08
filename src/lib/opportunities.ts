@@ -37,11 +37,108 @@ export interface QueryOptions {
   postedSince?: string | null;
 }
 
+// ---------------------------------------------------------------------------
+// Contextual query expansion. Government solicitations rarely use the same words
+// a small agency would search for ("PR" instead of "public relations", or
+// "marketing" when the notice says "outreach"/"communications"). We expand a
+// user's query into a Postgres `websearch` OR-expression of related concepts so
+// search behaves contextually rather than as a literal keyword match.
+//
+// Keys are matched case-insensitively against the FULL trimmed query (exact) and
+// also as whole-word tokens, so "PR services" still expands "PR".
+// ---------------------------------------------------------------------------
+const CONCEPT_SYNONYMS: Record<string, string[]> = {
+  pr: ['public relations', 'communications', 'media relations', 'outreach', 'publicity'],
+  'public relations': ['PR', 'communications', 'media relations', 'outreach', 'publicity'],
+  marketing: ['advertising', 'outreach', 'communications', 'branding', 'promotion', 'campaign'],
+  advertising: ['marketing', 'media buy', 'media planning', 'campaign', 'promotion'],
+  communications: ['public relations', 'outreach', 'marketing', 'media relations'],
+  branding: ['brand', 'creative', 'design', 'identity'],
+  'social media': ['digital', 'content', 'community management', 'marketing'],
+  seo: ['search engine optimization', 'digital marketing', 'web'],
+  web: ['website', 'web design', 'web development', 'digital'],
+  website: ['web', 'web design', 'web development', 'digital'],
+  'web design': ['website', 'web development', 'web', 'ux', 'ui'],
+  'graphic design': ['creative', 'design', 'branding', 'visual'],
+  video: ['multimedia', 'production', 'creative', 'film'],
+  translation: ['localization', 'interpretation', 'multilingual', 'language'],
+  it: ['information technology', 'technology', 'software', 'systems'],
+  'information technology': ['IT', 'technology', 'software', 'systems'],
+  software: ['application', 'development', 'IT', 'systems', 'programming'],
+  consulting: ['advisory', 'professional services', 'consultant'],
+  research: ['market research', 'analysis', 'study', 'survey'],
+  training: ['education', 'workshop', 'instruction', 'learning'],
+  construction: ['building', 'renovation', 'infrastructure', 'contractor'],
+  engineering: ['design', 'technical', 'infrastructure'],
+  janitorial: ['cleaning', 'custodial', 'maintenance'],
+  landscaping: ['grounds', 'maintenance', 'horticulture'],
+  catering: ['food service', 'food', 'meals'],
+  security: ['guard', 'protection', 'surveillance'],
+};
+
+/** Whitespace/punctuation tokenizer for whole-word concept matching. */
+function tokens(s: string): string[] {
+  return s
+    .toLowerCase()
+    .split(/[^a-z0-9&]+/)
+    .filter(Boolean);
+}
+
+/**
+ * Expand a raw search query into a Postgres `websearch` expression that ORs in
+ * related concepts. Returns the expanded string plus whether any expansion was
+ * applied (so the UI can tell the user we broadened the search).
+ *
+ * websearch syntax: space = AND, `OR` = OR, quotes = phrase. We build
+ * `("orig phrase") OR (syn1) OR ("syn 2") ...` to keep the user's phrase primary.
+ */
+export function expandQuery(raw: string): { expanded: string; didExpand: boolean } {
+  const q = raw.trim();
+  if (!q) return { expanded: q, didExpand: false };
+
+  const lower = q.toLowerCase();
+  const matched = new Set<string>();
+
+  // Exact full-query match (e.g. "public relations").
+  if (CONCEPT_SYNONYMS[lower]) {
+    CONCEPT_SYNONYMS[lower].forEach((s) => matched.add(s));
+  }
+
+  // Whole-word token matches (e.g. "PR" inside "PR agency"). Also handle
+  // two-word concepts present in the query (e.g. "social media").
+  const toks = tokens(q);
+  for (const [concept, syns] of Object.entries(CONCEPT_SYNONYMS)) {
+    if (concept === lower) continue; // already handled
+    const conceptToks = concept.split(' ');
+    const present =
+      conceptToks.length === 1
+        ? toks.includes(concept)
+        : lower.includes(concept);
+    if (present) syns.forEach((s) => matched.add(s));
+  }
+
+  if (matched.size === 0) return { expanded: q, didExpand: false };
+
+  // Quote multi-word terms; leave single words bare.
+  const quote = (t: string) => (t.includes(' ') ? `"${t}"` : t);
+  const origGroup = quote(q);
+  const synGroups = [...matched]
+    .filter((s) => s.toLowerCase() !== lower)
+    .map(quote);
+
+  const expanded = [origGroup, ...synGroups].join(' OR ');
+  return { expanded, didExpand: true };
+}
+
 export interface QueryResult {
   results: OpportunityRecord[];
   error?: string;
   /** True when Supabase isn't configured (so callers can show a clear message). */
   unavailable?: boolean;
+  /** True when the keyword was expanded with related concepts (contextual search). */
+  didExpand?: boolean;
+  /** True when FTS found nothing and we fell back to a broad substring match. */
+  usedFallback?: boolean;
 }
 
 /** Map a DB row to the UI/assessment record shape. */
@@ -108,20 +205,74 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
   const supabase = getSupabaseAdmin();
   if (!supabase) return { results: [], unavailable: true, error: 'Opportunity database is not configured.' };
 
-  try {
-    let q = supabase.from(TABLE).select('*').eq('status', 'active').or(CA_OR_FILTER);
+  const limit = opts.limit ?? 100;
+  const keyword = opts.keyword?.trim();
 
-    if (opts.keyword && opts.keyword.trim()) {
-      // Postgres full-text websearch over the generated tsvector column.
-      q = q.textSearch('search_tsv', opts.keyword.trim(), { type: 'websearch', config: 'english' });
-    }
+  // Shared builder so the primary (FTS) and fallback (ilike) queries apply the
+  // same non-keyword filters.
+  const baseQuery = () => {
+    let q = supabase.from(TABLE).select('*').eq('status', 'active').or(CA_OR_FILTER);
     if (opts.naicsCode) q = q.eq('naics_code', opts.naicsCode);
     if (opts.setAsideType) q = q.ilike('set_aside_type', `%${opts.setAsideType}%`);
     if (opts.postedSince) q = q.gte('posted_date', opts.postedSince);
+    return q;
+  };
 
-    q = q.order('posted_date', { ascending: false }).limit(opts.limit ?? 100);
+  try {
+    let didExpand = false;
 
-    const { data, error } = await q;
+    if (keyword) {
+      // Contextual search: expand the query into related concepts before FTS.
+      const { expanded, didExpand: ex } = expandQuery(keyword);
+      didExpand = ex;
+      const q = baseQuery()
+        .textSearch('search_tsv', expanded, { type: 'websearch', config: 'english' })
+        .order('posted_date', { ascending: false })
+        .limit(limit);
+
+      const { data, error } = await q;
+      if (error) {
+        console.error('[Opportunities] FTS query failed:', error.message);
+        return { results: [], error: 'Could not load opportunities.' };
+      }
+
+      const rows = data || [];
+      if (rows.length > 0) {
+        return { results: rows.map(rowToRecord), didExpand };
+      }
+
+      // Fallback: FTS found nothing and the term isn't in our concept dictionary.
+      // Do a broad substring match over title + description so the user still
+      // gets contextual hits. Guard against very short terms (e.g. 2–3 chars)
+      // which match as substrings of unrelated words ("PR" inside "approach")
+      // and would flood the results with noise — those are better served by the
+      // expansion dictionary, and if they're not in it, an empty result is more
+      // honest than 300 irrelevant rows.
+      // NOTE: PostgREST `.or()` treats commas/parens as filter syntax, so strip
+      // them from the user value before interpolating into the pattern.
+      const safeKeyword = keyword.replace(/[,()]/g, ' ').trim();
+      if (safeKeyword.length < 4) {
+        return { results: [], didExpand };
+      }
+      const pattern = `%${safeKeyword}%`;
+      const fb = baseQuery()
+        .or(`title.ilike.${pattern},description.ilike.${pattern}`)
+        .order('posted_date', { ascending: false })
+        .limit(limit);
+
+      const { data: fbData, error: fbError } = await fb;
+      if (fbError) {
+        console.error('[Opportunities] ilike fallback failed:', fbError.message);
+        // FTS already returned 0 cleanly — surface an empty result, not an error.
+        return { results: [], didExpand };
+      }
+      return { results: (fbData || []).map(rowToRecord), didExpand, usedFallback: true };
+    }
+
+    // No keyword — straight listing.
+    const { data, error } = await baseQuery()
+      .order('posted_date', { ascending: false })
+      .limit(limit);
     if (error) {
       console.error('[Opportunities] query failed:', error.message);
       return { results: [], error: 'Could not load opportunities.' };

@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BidFlare
+
+BidFlare helps small marketing & communications agencies find and win California
+public-sector contracts. It ingests opportunities from public sources (Cal
+eProcure, DGS, Caltrans, SAM.gov), scores each one against the agency's profile
+with a transparent deterministic engine, and surfaces the best-fit matches with
+plain-English explanations.
+
+- **App:** https://app.bidflare.io
+- **Landing page:** https://bidflare.io (separate repo:
+  [`bid-signal`](https://github.com/nava-aaron/bid-signal))
+
+## Stack
+
+- **Next.js 16** (App Router) — note: `middleware.ts` is renamed to `proxy.ts`
+  with a named `proxy` export in this version.
+- **Supabase** — Postgres (opportunities + profiles) and Auth (`@supabase/ssr`,
+  PKCE). Browser auth is proxied through a same-origin `/sb` rewrite to dodge
+  DNS adblockers on `*.supabase.co`.
+- **next-intl** — `en` / `es` localization.
+- **Stripe** — subscription billing.
+- **Vercel** — hosting, cron-driven ingestion.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Create `.env.local` with at least:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## How matching works
 
-## Learn More
+### Opportunity Assessment (`src/lib/assessment.ts`)
 
-To learn more about Next.js, take a look at the following resources:
+Every opportunity is scored 0–100 by a deterministic engine across three weighted
+groups — **Eligibility (40%)**, **Fit (35%)**, **Edge (25%)**. Hard-requirement
+gaps (missing a required set-aside certification, out-of-radius on-site work) cap
+the score so a real blocker can never read as a high match. Scores map to labels:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Score | Label |
+|-------|-------|
+| 80–100 | Strong Match |
+| 60–79 | Good Match |
+| 40–59 | Possible Match |
+| 0–39 | Weak Match |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Recommendations (`src/lib/recommendations.ts`)
 
-## Deploy on Vercel
+The "Recommended for you" feed scores the **full** California opportunity set and
+splits results into:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Recommended** — Good Match and above (≥60), further split into "new since
+  your last visit" vs. the rest for returning users.
+- **Other opportunities** — Possible Matches (40–59), shown in a visually
+  subordinate block so users can see how many more opportunities exist without
+  diluting the top picks.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Contextual search (`src/lib/opportunities.ts`)
+
+Search is contextual, not literal. A query is expanded into related concepts
+before hitting Postgres full-text search — e.g. `PR` → `public relations`,
+`communications`, `media relations`, `outreach`; `marketing` → `advertising`,
+`outreach`, `branding`, `campaign`. If full-text search returns nothing for a
+specific (≥4 char) term, it falls back to a broad substring match so users still
+get the closest hits. The UI notes when a search was expanded or broadened.
+
+All user-facing reads go through the Supabase store only (never SAM.gov live), so
+search stays fast and resilient even when upstream sources are down.
+
+## Routing & auth
+
+- `proxy.ts` handles i18n routing and refreshes the Supabase session on every
+  request. The bare app URL (`/`, `/en`, `/es`) routes returning users (with a
+  session cookie) straight to their dashboard, and everyone else to login.
+- `src/app/[locale]/dashboard/layout.tsx` is the real auth gate — it validates
+  the session server-side and bounces unauthenticated users to login, and
+  not-yet-onboarded users to onboarding.
+- OAuth callback lands on `/auth/callback`; email confirmation on `/auth/confirm`.
+
+## Deploy
+
+Deployed on Vercel. Production deploys:
+
+```bash
+vercel deploy --prod
+```
+
+DNS for `bidflare.io` / `app.bidflare.io` is managed in Cloudflare (CNAME →
+`cname.vercel-dns.com`, DNS-only). Both hostnames are attached to their
+respective Vercel projects with auto-provisioned SSL.

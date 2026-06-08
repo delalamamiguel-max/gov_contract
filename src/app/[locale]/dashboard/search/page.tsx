@@ -55,6 +55,8 @@ export default async function SearchPage({
   opportunities = result.results;
   searchError = result.error;
   dbUnavailable = Boolean(result.unavailable);
+  const didExpand = Boolean(result.didExpand);
+  const usedFallback = Boolean(result.usedFallback);
 
   // How many opportunities exist at all (drives the "not synced yet" empty state).
   const totalInDb = await countOpportunities();
@@ -115,6 +117,8 @@ export default async function SearchPage({
           <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-primary)' }} />
           {displayData.length} matched {displayData.length === 1 ? 'opportunity' : 'opportunities'} from your synced database
           {usingProfileDefault && <span> · personalized from your profile (&ldquo;{query}&rdquo;)</span>}
+          {didExpand && <span> · expanded to related terms</span>}
+          {usedFallback && <span> · broadened to closest matches</span>}
           <span> · within {radius >= 100 ? '100+' : radius} mi{profile.remotePreference && profile.remotePreference !== 'local' ? ' + remote' : ''}</span>
           {hiddenByRadius > 0 && <span> · {hiddenByRadius} outside radius hidden</span>}
         </div>

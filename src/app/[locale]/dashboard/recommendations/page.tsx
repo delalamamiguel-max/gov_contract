@@ -5,7 +5,7 @@ import { getRecommendations, type RecommendationItem } from '@/lib/recommendatio
 import { countOpportunities } from '@/lib/opportunities';
 import ContractRow from '@/components/ContractRow';
 import FeedSeenBeacon from '@/components/FeedSeenBeacon';
-import { Sparkles, Clock } from 'lucide-react';
+import { Sparkles, Clock, Layers } from 'lucide-react';
 
 function ItemBlock({ item, radius }: { item: RecommendationItem; radius: number }) {
   return (
@@ -23,6 +23,19 @@ function ItemBlock({ item, radius }: { item: RecommendationItem; radius: number 
         <Sparkles size={14} color="var(--accent-primary)" style={{ marginTop: 2, flexShrink: 0 }} />
         <span>{item.explanation}</span>
       </div>
+      <ContractRow opp={item} radius={radius} />
+    </div>
+  );
+}
+
+/**
+ * Lower-confidence "other match" row — visually subordinate to the primary feed:
+ * dimmed, no Sparkles explanation header, and slightly reduced opacity so the eye
+ * goes to the recommended matches first.
+ */
+function OtherItemBlock({ item, radius }: { item: RecommendationItem; radius: number }) {
+  return (
+    <div style={{ opacity: 0.78 }}>
       <ContractRow opp={item} radius={radius} />
     </div>
   );
@@ -113,6 +126,47 @@ export default async function RecommendationsPage() {
               ))
             )}
           </section>
+
+          {/* Other opportunities — lower-confidence (Possible Match) results, kept
+              visually separate and subordinate so the user can see how many more
+              opportunities exist without diluting the top recommendations. */}
+          {rec.otherItems.length > 0 && (
+            <section
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem',
+                marginTop: '1rem',
+                paddingTop: '1.5rem',
+                borderTop: '1px dashed var(--border-color)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Layers size={18} color="var(--text-muted)" />
+                <h2 style={{ fontSize: '1.15rem', color: 'var(--text-secondary)' }}>
+                  Other opportunities
+                </h2>
+                <span
+                  style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    background: 'var(--border-color)',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: 999,
+                  }}
+                >
+                  {rec.otherItems.length}
+                </span>
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
+                Lower match scores — worth a look if you want to broaden your pipeline.
+              </p>
+              {rec.otherItems.map((item) => (
+                <OtherItemBlock key={item.id} item={item} radius={radius} />
+              ))}
+            </section>
+          )}
         </>
       )}
 

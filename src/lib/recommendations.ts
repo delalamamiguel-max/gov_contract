@@ -38,6 +38,8 @@ export interface RecommendationsResult {
   isFirstVisit: boolean;
   newItems: RecommendationItem[];
   olderItems: RecommendationItem[];
+  /** Lower-confidence matches (Possible Match, 40–59) shown as a secondary block. */
+  otherItems: RecommendationItem[];
   totalConsidered: number;
   unavailable: boolean;
   error?: string;
@@ -126,8 +128,10 @@ function deadlineRank(iso: string | null): number {
 export interface RecommendationOptions {
   radius?: number;
   signals?: FeedbackSignalInput;
-  /** Minimum match score to include. */
+  /** Minimum match score for the primary ("recommended") feed. */
   minScore?: number;
+  /** Lower bound for the secondary "other matches" block. */
+  otherFloor?: number;
   /** Max items to score/return per block. */
   limit?: number;
 }
@@ -141,23 +145,36 @@ export async function getRecommendations(
   opts: RecommendationOptions = {}
 ): Promise<RecommendationsResult> {
   const radius = opts.radius ?? profile.serviceRadiusMiles ?? 50;
-  // Curated feed: only surface Good Match+ (>=60) in "For you". Search keeps the
-  // broader 40 threshold so users can still find weaker matches by querying.
+  // Curated feed: surface Good Match+ (>=60) as "Recommended for you". Possible
+  // Matches (40–59) are still shown, but in a visually separate, lower-priority
+  // "Other opportunities" block so the user can see how many more exist without
+  // diluting the top picks. Weak matches (<40) are not surfaced.
   const minScore = opts.minScore ?? 60;
+  const otherFloor = opts.otherFloor ?? 40;
   const limit = opts.limit ?? 50;
   const newSince = profile.lastFeedSeenAt ? new Date(profile.lastFeedSeenAt).getTime() : null;
   const isFirstVisit = newSince === null;
 
   // Pull a broad set of stored opportunities (Supabase only — never SAM live).
-  const { results, unavailable, error } = await queryOpportunities({ limit: 250 });
-  if (unavailable) return { isFirstVisit, newItems: [], olderItems: [], totalConsidered: 0, unavailable: true, error };
+  // 500 comfortably covers the full CA opportunity set, so every opportunity is
+  // scored for recommendations — closing the gap where a high-scoring older
+  // opportunity showed in search (keyword-filtered) but not here (recency-
+  // windowed).
+  const { results, unavailable, error } = await queryOpportunities({ limit: 500 });
+  if (unavailable) return { isFirstVisit, newItems: [], olderItems: [], otherItems: [], totalConsidered: 0, unavailable: true, error };
 
-  const scored = results
+  // Score everything that is at least location-serviceable and clears the lower
+  // "other" floor. We split into primary (>=minScore) and other (floor..minScore)
+  // below.
+  const allScored = results
     .map((o) => {
       const a = computeAssessment(o, profile, radius, opts.signals);
       return { o, a };
     })
-    .filter(({ a }) => a.matchScore >= minScore && (a.withinRadius || a.remoteEligible));
+    .filter(({ a }) => a.matchScore >= otherFloor && (a.withinRadius || a.remoteEligible));
+
+  const scored = allScored.filter(({ a }) => a.matchScore >= minScore);
+  const otherScored = allScored.filter(({ a }) => a.matchScore < minScore);
 
   const toItem = (o: OpportunityRecord, a: OpportunityAssessment, isNew: boolean): RecommendationItem => ({
     id: o.noticeId,
@@ -184,10 +201,21 @@ export async function getRecommendations(
   const sortBlock = (arr: { o: OpportunityRecord; a: OpportunityAssessment }[]) =>
     arr.sort((x, y) => y.a.matchScore - x.a.matchScore || deadlineRank(x.o.responseDeadline ?? null) - deadlineRank(y.o.responseDeadline ?? null));
 
+  // Secondary block of lower-confidence matches, shared across first/return
+  // visits. Sorted by score; capped so it never overwhelms the page.
+  const otherBlock = sortBlock(otherScored).slice(0, limit).map(({ o, a }) => toItem(o, a, false));
+
   if (isFirstVisit) {
-    // First feed: everything is "your top matches" (no new/old split).
+    // First feed: everything qualifying is "your top matches" (no new/old split).
     const all = sortBlock(scored).slice(0, limit).map(({ o, a }) => toItem(o, a, false));
-    return { isFirstVisit: true, newItems: all, olderItems: [], totalConsidered: scored.length, unavailable: false };
+    return {
+      isFirstVisit: true,
+      newItems: all,
+      olderItems: [],
+      otherItems: otherBlock,
+      totalConsidered: allScored.length,
+      unavailable: false,
+    };
   }
 
   const isNewOpp = (o: OpportunityRecord) => {
@@ -198,5 +226,12 @@ export async function getRecommendations(
   const newBlock = sortBlock(scored.filter(({ o }) => isNewOpp(o))).slice(0, limit).map(({ o, a }) => toItem(o, a, true));
   const olderBlock = sortBlock(scored.filter(({ o }) => !isNewOpp(o))).slice(0, limit).map(({ o, a }) => toItem(o, a, false));
 
-  return { isFirstVisit: false, newItems: newBlock, olderItems: olderBlock, totalConsidered: scored.length, unavailable: false };
+  return {
+    isFirstVisit: false,
+    newItems: newBlock,
+    olderItems: olderBlock,
+    otherItems: otherBlock,
+    totalConsidered: allScored.length,
+    unavailable: false,
+  };
 }

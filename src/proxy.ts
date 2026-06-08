@@ -11,10 +11,21 @@ const intlMiddleware = createMiddleware(routing);
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  // Root → login
+  // Root → dashboard if a session cookie is present, else login.
+  // This is a fast cookie-presence check (no network call). The dashboard layout
+  // still validates the session server-side and bounces to login if it's
+  // expired/invalid — so a stale cookie can't grant real access, it just means
+  // we optimistically route returning users to their feed instead of the login
+  // wall when they type the bare app URL.
   if (pathname === '/' || pathname === '/en' || pathname === '/es') {
     const locale = pathname === '/' ? 'en' : pathname.replace('/', '');
-    return NextResponse.redirect(new URL(`/${locale}/login`, request.url));
+    // supabase-js chunks large session cookies into `${KEY}.0`, `${KEY}.1`, … so
+    // match by prefix rather than the exact base name.
+    const hasSession = request.cookies
+      .getAll()
+      .some((c) => c.name === AUTH_STORAGE_KEY || c.name.startsWith(`${AUTH_STORAGE_KEY}.`));
+    const dest = hasSession ? `/${locale}/dashboard/recommendations` : `/${locale}/login`;
+    return NextResponse.redirect(new URL(dest, request.url));
   }
 
   // i18n routing response.
