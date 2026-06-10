@@ -1,11 +1,10 @@
-import { useTranslations } from 'next-intl';
+import { getTranslations, getLocale } from 'next-intl/server';
 import { ArrowRight, Search, Zap, Globe } from 'lucide-react';
 import Link from 'next/link';
 import BidFlareLogo from '@/components/BidFlareLogo';
-import { getLocale } from 'next-intl/server';
 
 export default async function Home() {
-  const t = useTranslations('Index');
+  const t = await getTranslations('Index');
   const locale = await getLocale();
 
   return (
