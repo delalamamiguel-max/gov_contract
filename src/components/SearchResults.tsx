@@ -16,6 +16,7 @@ import type { ProposalChecklist } from '@/lib/checklist';
 export interface SearchResult {
   id: string | number;
   source?: string | null;
+  status?: string | null;
   title: string;
   agency: string;
   description?: string;

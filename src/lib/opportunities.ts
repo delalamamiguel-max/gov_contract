@@ -10,6 +10,15 @@ import { caleprocureEventUrl } from '@/lib/sources/caleprocure';
 
 const TABLE = 'opportunities';
 
+// Which lifecycle states count as "available" to a bidding agency.
+//  - active  : open, biddable now (caleprocure, sam.gov)
+//  - planned : upcoming work not yet open for bids (caltrans pipeline) — shown
+//              so agencies can prepare early; badged "Upcoming" in the UI.
+// 'awarded' is intentionally EXCLUDED: dgs-ncb rows are already-awarded
+// non-competitive bids (NCBs) — not biddable, so surfacing them as available
+// opportunities would mislead users. (They remain in the DB for analytics.)
+const VISIBLE_STATUSES = ['active', 'planned'] as const;
+
 // California-only (MVP). Keep rows from the CA-native sources, plus any other
 // source whose place of performance mentions California. Applied to every
 // user-facing read so non-CA / seed rows never surface.
@@ -26,6 +35,8 @@ export type OpportunityRecord = SamGovOpportunity & {
   lastSyncedAt?: string | null;
   /** When this opportunity was first ingested into our DB (drives "new" feed). */
   ingestedAt?: string | null;
+  /** Lifecycle state: 'active' (biddable) | 'planned' (upcoming) | 'awarded'. */
+  status?: string | null;
 };
 
 export interface QueryOptions {
@@ -139,6 +150,10 @@ export interface QueryResult {
   didExpand?: boolean;
   /** True when FTS found nothing and we fell back to a broad substring match. */
   usedFallback?: boolean;
+  /** Count of rows that genuinely matched the keyword (before any base-set fill). */
+  matchedCount?: number;
+  /** True when the keyword matched few rows so the full listing was appended. */
+  appendedAll?: boolean;
 }
 
 /** Map a DB row to the UI/assessment record shape. */
@@ -171,6 +186,7 @@ function rowToRecord(r: Record<string, any>): OpportunityRecord {
     sourceUrl: sourceUrl ?? '',
     lastSyncedAt: r.last_synced_at ?? null,
     ingestedAt: r.created_at ?? null,
+    status: r.status ?? null,
   };
 }
 
@@ -211,11 +227,28 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
   // Shared builder so the primary (FTS) and fallback (ilike) queries apply the
   // same non-keyword filters.
   const baseQuery = () => {
-    let q = supabase.from(TABLE).select('*').eq('status', 'active').or(CA_OR_FILTER);
+    let q = supabase.from(TABLE).select('*').in('status', VISIBLE_STATUSES as unknown as string[]).or(CA_OR_FILTER);
     if (opts.naicsCode) q = q.eq('naics_code', opts.naicsCode);
     if (opts.setAsideType) q = q.ilike('set_aside_type', `%${opts.setAsideType}%`);
     if (opts.postedSince) q = q.gte('posted_date', opts.postedSince);
     return q;
+  };
+
+  // Below this many genuine keyword hits we append the full listing so the user
+  // is never stranded on a near-empty page — they can always see what else exists.
+  const MIN_KEYWORD_RESULTS = 15;
+
+  /** Dedupe records by source_id, preserving first-seen order. */
+  const dedupe = (rows: OpportunityRecord[]): OpportunityRecord[] => {
+    const seen = new Set<string>();
+    const out: OpportunityRecord[] = [];
+    for (const r of rows) {
+      const key = String(r.noticeId);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(r);
+    }
+    return out;
   };
 
   try {
@@ -225,48 +258,62 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
       // Contextual search: expand the query into related concepts before FTS.
       const { expanded, didExpand: ex } = expandQuery(keyword);
       didExpand = ex;
-      const q = baseQuery()
+
+      // 1) Primary: full-text search over the expanded concept set.
+      const { data: ftsData, error: ftsError } = await baseQuery()
         .textSearch('search_tsv', expanded, { type: 'websearch', config: 'english' })
         .order('posted_date', { ascending: false })
         .limit(limit);
-
-      const { data, error } = await q;
-      if (error) {
-        console.error('[Opportunities] FTS query failed:', error.message);
+      if (ftsError) {
+        console.error('[Opportunities] FTS query failed:', ftsError.message);
         return { results: [], error: 'Could not load opportunities.' };
       }
+      const ftsRows = (ftsData || []).map(rowToRecord);
 
-      const rows = data || [];
-      if (rows.length > 0) {
-        return { results: rows.map(rowToRecord), didExpand };
-      }
-
-      // Fallback: FTS found nothing and the term isn't in our concept dictionary.
-      // Do a broad substring match over title + description so the user still
-      // gets contextual hits. Guard against very short terms (e.g. 2–3 chars)
-      // which match as substrings of unrelated words ("PR" inside "approach")
-      // and would flood the results with noise — those are better served by the
-      // expansion dictionary, and if they're not in it, an empty result is more
-      // honest than 300 irrelevant rows.
+      // 2) Substring fallback over title + description, MERGED with FTS (not just
+      //    when FTS is empty) so contextual title/body hits are never missed.
+      //    Guard short terms (<4 chars) which match noise as substrings
+      //    ("PR" inside "approach"); those are served by the expansion dict.
       // NOTE: PostgREST `.or()` treats commas/parens as filter syntax, so strip
       // them from the user value before interpolating into the pattern.
+      let ilikeRows: OpportunityRecord[] = [];
       const safeKeyword = keyword.replace(/[,()]/g, ' ').trim();
-      if (safeKeyword.length < 4) {
-        return { results: [], didExpand };
+      if (safeKeyword.length >= 4) {
+        const pattern = `%${safeKeyword}%`;
+        const { data: fbData, error: fbError } = await baseQuery()
+          .or(`title.ilike.${pattern},description.ilike.${pattern}`)
+          .order('posted_date', { ascending: false })
+          .limit(limit);
+        if (fbError) {
+          console.error('[Opportunities] ilike fallback failed:', fbError.message);
+        } else {
+          ilikeRows = (fbData || []).map(rowToRecord);
+        }
       }
-      const pattern = `%${safeKeyword}%`;
-      const fb = baseQuery()
-        .or(`title.ilike.${pattern},description.ilike.${pattern}`)
-        .order('posted_date', { ascending: false })
-        .limit(limit);
 
-      const { data: fbData, error: fbError } = await fb;
-      if (fbError) {
-        console.error('[Opportunities] ilike fallback failed:', fbError.message);
-        // FTS already returned 0 cleanly — surface an empty result, not an error.
-        return { results: [], didExpand };
+      // Genuine keyword matches = FTS ∪ substring, deduped.
+      const matched = dedupe([...ftsRows, ...ilikeRows]);
+      const usedFallback = ftsRows.length === 0 && ilikeRows.length > 0;
+
+      // 3) Always give the user something to browse: if the keyword matched
+      //    only a handful, append the full listing so they can see all that's
+      //    available. Matched rows stay first (they're the most relevant).
+      if (matched.length < MIN_KEYWORD_RESULTS) {
+        const { data: fillData } = await baseQuery()
+          .order('posted_date', { ascending: false })
+          .limit(limit);
+        const fill = (fillData || []).map(rowToRecord);
+        const combined = dedupe([...matched, ...fill]);
+        return {
+          results: combined,
+          didExpand,
+          usedFallback,
+          matchedCount: matched.length,
+          appendedAll: matched.length < combined.length,
+        };
       }
-      return { results: (fbData || []).map(rowToRecord), didExpand, usedFallback: true };
+
+      return { results: matched, didExpand, usedFallback, matchedCount: matched.length };
     }
 
     // No keyword — straight listing.
@@ -289,7 +336,7 @@ export async function countOpportunities(): Promise<number> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 0;
   try {
-    const { count } = await supabase.from(TABLE).select('id', { count: 'exact', head: true }).eq('status', 'active').or(CA_OR_FILTER);
+    const { count } = await supabase.from(TABLE).select('id', { count: 'exact', head: true }).in('status', VISIBLE_STATUSES as unknown as string[]).or(CA_OR_FILTER);
     return count ?? 0;
   } catch {
     return 0;

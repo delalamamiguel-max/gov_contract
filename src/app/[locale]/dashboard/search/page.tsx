@@ -33,14 +33,12 @@ export default async function SearchPage({
     ? Math.min(100, Math.max(0, radiusParam))
     : profile.serviceRadiusMiles ?? 50;
 
-  // Default the query from the agency profile so users don't re-type every time.
+  // No keyword by default: show ALL available contracts. Results are still
+  // scored against the agency profile and sorted highest-match-first, so the
+  // most relevant opportunities surface at the top without hiding the rest.
+  // Users type a query only when they want to narrow to a specific topic.
   const explicitQuery = typeof resolvedParams.q === 'string' ? resolvedParams.q : '';
-  const profileDefault =
-    (profile.keywords && profile.keywords[0]) ||
-    (profile.services && profile.services[0]) ||
-    '';
-  const query = explicitQuery || profileDefault;
-  const usingProfileDefault = !explicitQuery && Boolean(profileDefault);
+  const query = explicitQuery;
 
   // Query Bidflare's Supabase store ONLY — never SAM.gov live. Fast and stable
   // even if SAM is down (serves the last-synced data).
@@ -58,6 +56,8 @@ export default async function SearchPage({
   dbUnavailable = Boolean(result.unavailable);
   const didExpand = Boolean(result.didExpand);
   const usedFallback = Boolean(result.usedFallback);
+  const appendedAll = Boolean(result.appendedAll);
+  const matchedCount = result.matchedCount;
 
   // How many opportunities exist at all (drives the "not synced yet" empty state).
   const totalInDb = await countOpportunities();
@@ -79,6 +79,7 @@ export default async function SearchPage({
   const displayData = radiusFiltered.map(({ o, a }) => ({
     id: o.noticeId,
     source: o.source ?? null,
+    status: o.status ?? null,
     title: o.title,
     agency: o.agency,
     description: o.description || 'No description text was available for this opportunity.',
@@ -120,10 +121,17 @@ export default async function SearchPage({
       {displayData.length > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
           <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: 'var(--accent-primary)' }} />
-          {displayData.length} matched {displayData.length === 1 ? 'opportunity' : 'opportunities'} from your synced database
-          {usingProfileDefault && <span> · personalized from your profile (&ldquo;{query}&rdquo;)</span>}
-          {didExpand && <span> · expanded to related terms</span>}
-          {usedFallback && <span> · broadened to closest matches</span>}
+          {query ? (
+            <>
+              {appendedAll && typeof matchedCount === 'number'
+                ? <>{matchedCount} {matchedCount === 1 ? 'match' : 'matches'} for &ldquo;{query}&rdquo;, plus all other available contracts below</>
+                : <>{displayData.length} {displayData.length === 1 ? 'result' : 'results'} for &ldquo;{query}&rdquo;</>}
+              {didExpand && <span> · expanded to related terms</span>}
+              {usedFallback && <span> · broadened to closest matches</span>}
+            </>
+          ) : (
+            <>Showing all {displayData.length} available {displayData.length === 1 ? 'contract' : 'contracts'}, ranked by fit to your profile</>
+          )}
           <span> · within {radius >= 100 ? '100+' : radius} mi{profile.remotePreference && profile.remotePreference !== 'local' ? ' + remote' : ''}</span>
           {hiddenByRadius > 0 && <span> · {hiddenByRadius} outside radius hidden</span>}
         </div>

@@ -18,6 +18,7 @@ export interface RecommendationItem {
   // Shape consumed by ContractRow (same as search results) + feed extras.
   id: string;
   source: string | null;
+  status: string | null;
   title: string;
   agency: string;
   description: string;
@@ -192,6 +193,7 @@ export async function getRecommendations(
   const toItem = (o: OpportunityRecord, a: OpportunityAssessment, isNew: boolean): RecommendationItem => ({
     id: o.noticeId,
     source: o.source ?? null,
+    status: o.status ?? null,
     title: o.title,
     agency: o.agency,
     description: o.description || 'No description text was available for this opportunity.',

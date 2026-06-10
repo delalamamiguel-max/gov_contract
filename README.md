@@ -128,12 +128,33 @@ feed stays scannable (first few shown, the rest one click away).
 
 ### Contextual search (`src/lib/opportunities.ts`)
 
-Search is contextual, not literal. A query is expanded into related concepts
-before hitting Postgres full-text search — e.g. `PR` → `public relations`,
+Search is built so the user can **always see every available contract**, with the
+most relevant ones ranked first.
+
+**Browse-all by default.** The search page opens with **no keyword** and lists
+all available opportunities, scored against the agency profile and sorted
+highest-fit-first. (It used to default to the user's primary service keyword,
+which silently hid most of the database behind a narrow filter.) A keyword is
+applied only when the user explicitly types one; a **clear (×)** control returns
+to the full listing at any time.
+
+**What's "available".** Reads include `active` (open, biddable) **and** `planned`
+(upcoming pipeline work, badged "Upcoming") rows. Already-`awarded`
+non-competitive bids are intentionally excluded — they aren't biddable, so
+surfacing them as opportunities would mislead users.
+
+**Contextual, not literal.** A query is expanded into related concepts before
+hitting Postgres full-text search — e.g. `PR` → `public relations`,
 `communications`, `media relations`, `outreach`; `marketing` → `advertising`,
-`outreach`, `branding`, `campaign`. If full-text search returns nothing for a
-specific (≥4 char) term, it falls back to a broad substring match so users still
-get the closest hits. The UI notes when a search was expanded or broadened.
+`outreach`, `branding`, `campaign`. FTS runs over `search_tsv`, which indexes the
+**title** as well as the description, so even sources with templated description
+text (e.g. Cal eProcure) stay searchable by their title. FTS results are **merged
+with** a title/description substring match (for terms ≥4 chars) rather than only
+falling back when FTS is empty — so contextual hits are never missed.
+
+**Never a dead end.** If a keyword matches fewer than 15 rows, the full listing is
+appended below the matches (deduped), so the user always sees what else exists.
+The UI shows "N matches for "term", plus all other available contracts below".
 
 Results are split into a **Top matches** section (≥60) shown immediately and an
 **Other opportunities** section (<60) behind a "Show all" button — both sorted

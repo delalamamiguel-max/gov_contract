@@ -1,6 +1,6 @@
 'use client';
 
-import { Search as SearchIcon, Loader } from 'lucide-react';
+import { Search as SearchIcon, Loader, X } from 'lucide-react';
 import { useRouter, useSearchParams, useParams } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
@@ -25,6 +25,17 @@ export default function SearchInput() {
     });
   };
 
+  // Clear the keyword and return to the full "browse all" listing.
+  const handleClear = () => {
+    setQuery('');
+    startTransition(() => {
+      router.push(`/${locale}/dashboard/search`);
+      router.refresh();
+    });
+  };
+
+  const hasActiveQuery = Boolean(searchParams.get('q'));
+
   return (
     <form onSubmit={handleSearch} style={{
       flex: 1, display: 'flex', alignItems: 'center',
@@ -41,11 +52,36 @@ export default function SearchInput() {
         style={{
           background: 'transparent', border: 'none', color: 'var(--text-primary)',
           width: '100%', fontSize: '1rem', outline: 'none',
-          paddingRight: '2.75rem', // space for the icon on the right
+          paddingRight: (query || hasActiveQuery) ? '4.75rem' : '2.75rem', // room for clear + search
           paddingTop: '0.25rem',
           paddingBottom: '0.25rem',
         }}
       />
+      {(query || hasActiveQuery) && (
+        <button
+          type="button"
+          onClick={handleClear}
+          aria-label="Clear search and show all contracts"
+          title="Show all contracts"
+          style={{
+            position: 'absolute',
+            right: '2.75rem',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0.25rem',
+            borderRadius: '6px',
+            color: 'var(--text-muted)',
+          }}
+        >
+          <X size={18} />
+        </button>
+      )}
       <button
         type="submit"
         aria-label="Search"

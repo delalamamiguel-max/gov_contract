@@ -17,6 +17,7 @@ interface ContractRowProps {
   opp: {
     id: string | number;
     source?: string | null;
+    status?: string | null;
     title: string;
     agency: string;
     description?: string;
@@ -190,6 +191,14 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
                   style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent-primary)' }}
                 >
                   <Wand2 size={13} />
+                </span>
+              )}
+              {opp.status === 'planned' && (
+                <span
+                  title="Upcoming opportunity — not yet open for bids. Prepare early."
+                  style={{ padding: '0.2rem 0.5rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 600, background: 'rgba(148,163,184,0.18)', color: 'var(--text-muted)' }}
+                >
+                  Upcoming
                 </span>
               )}
             </span>
