@@ -76,7 +76,16 @@ export default function PayoffPage() {
       return;
     }
 
-    const encoded = Buffer.from(JSON.stringify(session)).toString('base64url');
+    // Browser-safe base64url: TextEncoder → btoa → URL-safe chars.
+    // Buffer.from(...).toString('base64url') is Node-only and not supported by
+    // the browser Buffer polyfill — this avoids that dependency entirely.
+    const json = JSON.stringify(session);
+    const bytes = new TextEncoder().encode(json);
+    const binStr = String.fromCodePoint(...bytes);
+    const encoded = btoa(binStr)
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
     fetch(`/api/onboarding-teaser?data=${encoded}`)
       .then((r) => r.json())
       .then((data: TeaserData) => {
