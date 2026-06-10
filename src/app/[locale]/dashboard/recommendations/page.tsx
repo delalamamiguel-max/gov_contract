@@ -101,12 +101,11 @@ export default async function RecommendationsPage() {
                   No new matching opportunities since you last checked. We&apos;ll surface fresh ones here after the next sync.
                 </div>
               ) : (
-                <ShowMoreFeed
-                  items={rec.newItems}
-                  initialVisible={5}
-                  moreLabel="new matches"
-                  renderItem={(item) => <ItemBlock key={item.id} item={item} radius={radius} />}
-                />
+                <ShowMoreFeed initialVisible={5} moreLabel="new matches">
+                  {rec.newItems.map((item) => (
+                    <ItemBlock key={item.id} item={item} radius={radius} />
+                  ))}
+                </ShowMoreFeed>
               )}
             </section>
           )}
@@ -127,12 +126,11 @@ export default async function RecommendationsPage() {
                 </p>
               </div>
             ) : (
-              <ShowMoreFeed
-                items={rec.isFirstVisit ? rec.newItems : rec.olderItems}
-                initialVisible={5}
-                moreLabel="matches"
-                renderItem={(item) => <ItemBlock key={item.id} item={item} radius={radius} />}
-              />
+              <ShowMoreFeed initialVisible={5} moreLabel="matches">
+                {(rec.isFirstVisit ? rec.newItems : rec.olderItems).map((item) => (
+                  <ItemBlock key={item.id} item={item} radius={radius} />
+                ))}
+              </ShowMoreFeed>
             )}
           </section>
 
@@ -171,12 +169,11 @@ export default async function RecommendationsPage() {
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
                 Lower match scores — worth a look if you want to broaden your pipeline.
               </p>
-              <ShowMoreFeed
-                items={rec.otherItems}
-                initialVisible={3}
-                moreLabel="other opportunities"
-                renderItem={(item) => <OtherItemBlock key={item.id} item={item} radius={radius} />}
-              />
+              <ShowMoreFeed initialVisible={3} moreLabel="other opportunities">
+                {rec.otherItems.map((item) => (
+                  <OtherItemBlock key={item.id} item={item} radius={radius} />
+                ))}
+              </ShowMoreFeed>
             </section>
           )}
         </>
