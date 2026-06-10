@@ -113,7 +113,7 @@ export default async function SearchPage({
       {!profileReady && (
         <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '8px', padding: '0.75rem 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           Finish your agency profile to personalize results by your services, location, and contract size.{' '}
-          <a href="/en/onboarding" style={{ color: 'var(--accent-primary)' }}>Complete onboarding →</a>
+          <a href="/en/dashboard/settings" style={{ color: 'var(--accent-primary)' }}>Complete profile →</a>
         </div>
       )}
 

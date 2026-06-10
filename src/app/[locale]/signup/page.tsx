@@ -32,7 +32,7 @@ export default function SignupPage() {
       // Tell Supabase where the confirmation link should land. Without this it
       // falls back to the project's Site URL (defaults to localhost:3000),
       // which is why the emailed link sent deployed users to localhost.
-      const emailRedirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent(`/${locale}/onboarding`)}`;
+      const emailRedirectTo = `${window.location.origin}/auth/confirm?next=${encodeURIComponent(`/${locale}/onboarding/complete`)}`;
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -41,7 +41,7 @@ export default function SignupPage() {
       if (error) throw error;
       if (data.session) {
         // Email confirmation is off — straight into onboarding.
-        router.push(`/${locale}/onboarding`);
+        router.push(`/${locale}/onboarding/complete`);
         router.refresh();
       } else {
         // Email confirmation is on — user must verify first.
@@ -58,7 +58,7 @@ export default function SignupPage() {
     setError('');
     setLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/${locale}/onboarding`)}`;
+      const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(`/${locale}/onboarding/complete`)}`;
       const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
       if (error) throw error;
     } catch (err: any) {

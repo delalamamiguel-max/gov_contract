@@ -1,386 +1,406 @@
 'use client';
 
-import React, { useState } from 'react';
+// ---------------------------------------------------------------------------
+// OnboardingWizard — new value-first 6-question flow (unauthenticated).
+//
+// Flow: Bridge (0) → Agency type (1) → Size & revenue (2) → Primary
+// capability (3) → Gov experience (4) → Certifications (5) → CA presence (6)
+// → /en/onboarding/payoff
+//
+// All answers are saved to localStorage after every advance so the user can
+// refresh or close and resume within 24 hours.
+// ---------------------------------------------------------------------------
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
-import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Zap, Check } from 'lucide-react';
 import {
-  AGENCY_TYPES, SERVICES, INDUSTRIES, TARGET_OPPORTUNITY_TYPES, DELIVERY_CAPACITY,
-  TEAM_SIZES, CERTIFICATIONS, INSURANCE, PRIOR_GOV_EXPERIENCE, PROPOSAL_READINESS,
-  DIFFERENTIATORS, ROLES, REMOTE_PREFERENCE, ALERT_PREFERENCES,
+  AGENCY_TYPES, TEAM_SIZES, ANNUAL_REVENUE_RANGES, PRIMARY_CAPABILITIES,
+  GOV_EXPERIENCE_OPTIONS, CERTIFICATIONS, CA_PRESENCE_OPTIONS,
 } from './options';
+import {
+  saveSession, loadSession, type OnboardingAnswers,
+} from '@/lib/onboardingSession';
 
-interface ProfileState {
-  agencyName: string;
-  location: string;
-  citiesServed: string[];
-  countiesServed: string[];
-  serviceRadiusMiles: number;
-  remotePreference: string;
-  agencyType: string;
-  services: string[];
-  role: string;
-  industries: string[];
-  targetOpportunityTypes: string[];
-  teamSize: string;
-  deliveryCapacity: string;
-  largestProjectSize: number | '';
-  minContract: number | '';
-  maxContract: number | '';
-  monthlyMediaSpend: number | '';
-  certifications: string[];
-  insurance: string[];
-  priorGovExperience: string;
-  proposalReadiness: string[];
-  differentiators: string[];
-  keywords: string[];
-  excludeKeywords: string[];
-  alertPreferences: string[];
+const TOTAL_QUESTIONS = 6;
+
+// ---------------------------------------------------------------------------
+// Tiny UI primitives
+// ---------------------------------------------------------------------------
+
+function ProgressBar({ step }: { step: number }) {
+  return (
+    <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.4rem',
+      }}>
+        <span>Step {step} of {TOTAL_QUESTIONS}</span>
+        <span>{Math.round((step / TOTAL_QUESTIONS) * 100)}%</span>
+      </div>
+      <div style={{ height: 5, background: 'rgba(42,51,61,0.1)', borderRadius: 999 }}>
+        <div style={{
+          height: '100%',
+          width: `${(step / TOTAL_QUESTIONS) * 100}%`,
+          background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))',
+          borderRadius: 999,
+          transition: 'width 0.35s ease',
+        }} />
+      </div>
+    </div>
+  );
 }
 
-const initialState: ProfileState = {
-  agencyName: '', location: '', citiesServed: [], countiesServed: [], serviceRadiusMiles: 50,
-  remotePreference: '', agencyType: '', services: [], role: '', industries: [],
-  targetOpportunityTypes: [], teamSize: '', deliveryCapacity: '', largestProjectSize: '',
-  minContract: '', maxContract: '', monthlyMediaSpend: '', certifications: [], insurance: [],
-  priorGovExperience: '', proposalReadiness: [], differentiators: [], keywords: [],
-  excludeKeywords: [], alertPreferences: [],
-};
+/** Large tap-target card for single-select questions. */
+function OptionCard({
+  label, description, selected, onClick,
+}: {
+  label: string;
+  description?: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        width: '100%', textAlign: 'left',
+        padding: '0.85rem 1.1rem',
+        borderRadius: 10,
+        border: selected ? '1.5px solid var(--accent-primary)' : '1px solid var(--border-color)',
+        background: selected ? 'rgba(26,169,201,0.08)' : 'transparent',
+        cursor: 'pointer', transition: 'all 0.15s ease',
+        display: 'flex', alignItems: 'center', gap: '0.75rem',
+      }}
+    >
+      <span style={{
+        width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+        border: selected ? '2px solid var(--accent-primary)' : '2px solid var(--border-color)',
+        background: selected ? 'var(--accent-primary)' : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.15s ease',
+      }}>
+        {selected && <Check size={10} color="#fff" strokeWidth={3} />}
+      </span>
+      <span>
+        <span style={{ fontWeight: 600, fontSize: '0.92rem', display: 'block' }}>{label}</span>
+        {description && (
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginTop: 2 }}>
+            {description}
+          </span>
+        )}
+      </span>
+    </button>
+  );
+}
 
-// ---- Reusable UI bits ----
-
+/** Chip for multi-select questions. */
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
       onClick={onClick}
       style={{
-        padding: '0.5rem 0.9rem',
-        borderRadius: '999px',
-        fontSize: '0.875rem',
+        padding: '0.5rem 0.9rem', borderRadius: '999px', fontSize: '0.875rem',
         cursor: 'pointer',
         border: active ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
-        background: active ? 'rgba(59,130,246,0.15)' : 'rgba(42, 51, 61,0.03)',
+        background: active ? 'rgba(26,169,201,0.12)' : 'transparent',
         color: active ? 'var(--accent-primary)' : 'var(--text-secondary)',
-        display: 'flex', alignItems: 'center', gap: '0.35rem', transition: 'all 0.15s ease',
+        display: 'flex', alignItems: 'center', gap: '0.35rem',
+        transition: 'all 0.15s ease',
       }}
     >
-      {active && <Check size={13} />}
+      {active && <Check size={12} />}
       {label}
     </button>
   );
 }
 
-function ChipGroup({
-  options, selected, onToggle, multi = true,
-}: {
-  options: (string | { value: string; label: string })[];
-  selected: string[] | string;
-  onToggle: (v: string) => void;
-  multi?: boolean;
-}) {
-  const isSel = (v: string) => (multi ? (selected as string[]).includes(v) : selected === v);
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-      {options.map((o) => {
-        const value = typeof o === 'string' ? o : o.value;
-        const label = typeof o === 'string' ? o : o.label;
-        return <Chip key={value} label={label} active={isSel(value)} onClick={() => onToggle(value)} />;
-      })}
-    </div>
-  );
-}
+// ---------------------------------------------------------------------------
+// Main wizard component
+// ---------------------------------------------------------------------------
 
-function TagInput({
-  values, onChange, placeholder,
-}: { values: string[]; onChange: (v: string[]) => void; placeholder: string }) {
-  const [draft, setDraft] = useState('');
-  const add = () => {
-    const v = draft.trim();
-    if (v && !values.includes(v)) onChange([...values, v]);
-    setDraft('');
-  };
-  return (
-    <div>
-      <div style={{ display: 'flex', gap: '0.5rem' }}>
-        <input
-          className="form-input"
-          value={draft}
-          placeholder={placeholder}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add(); }
-          }}
-        />
-        <button type="button" className="btn btn-secondary" onClick={add} style={{ padding: '0 1rem' }}>Add</button>
-      </div>
-      {values.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.6rem' }}>
-          {values.map((v) => (
-            <span key={v} style={{
-              display: 'inline-flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0.6rem',
-              borderRadius: '999px', background: 'rgba(59,130,246,0.12)', color: 'var(--accent-primary)', fontSize: '0.8rem',
-            }}>
-              {v}
-              <X size={12} style={{ cursor: 'pointer' }} onClick={() => onChange(values.filter((x) => x !== v))} />
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <label style={{ fontWeight: 600, fontSize: '0.9rem' }}>{label}</label>
-      {hint && <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0 }}>{hint}</p>}
-      {children}
-    </div>
-  );
-}
+type Answers = Partial<OnboardingAnswers>;
 
-const STEPS = ['Agency', 'Service area', 'Services', 'Focus', 'Capacity', 'Credentials', 'Readiness', 'Alerts'];
+const DEFAULT_ANSWERS: Answers = {
+  agencyType: '',
+  teamSize: '',
+  annualRevenue: '',
+  primaryCapability: '',
+  priorGovExperience: '',
+  certifications: [],
+  caPresence: '',
+};
 
 export default function OnboardingWizard() {
   const router = useRouter();
   const locale = useLocale();
-  const [step, setStep] = useState(0);
-  const [p, setP] = useState<ProfileState>(initialState);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [step, setStep] = useState<Step>(0);
+  const [answers, setAnswers] = useState<Answers>(DEFAULT_ANSWERS);
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const set = <K extends keyof ProfileState>(key: K, value: ProfileState[K]) =>
-    setP((prev) => ({ ...prev, [key]: value }));
+  // Restore session on mount
+  useEffect(() => {
+    const session = loadSession();
+    if (session) {
+      setAnswers((prev) => ({ ...prev, ...session }));
+      // Don't restore step — always start from the bridge so the user
+      // sees the value prop again; they pick up where they left off quickly.
+    }
+  }, []);
 
-  const toggleArr = (key: keyof ProfileState, v: string) =>
-    setP((prev) => {
-      const arr = prev[key] as string[];
-      return { ...prev, [key]: arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v] };
-    });
+  const update = (patch: Partial<Answers>) =>
+    setAnswers((prev) => ({ ...prev, ...patch }));
 
-  const submit = async () => {
-    setSaving(true);
-    setError('');
-    try {
-      const res = await fetch('/api/profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...p, onboardingCompletedAt: new Date().toISOString() }),
-      });
-      if (!res.ok) throw new Error('Could not save your profile. Please try again.');
-      router.push(`/${locale}/dashboard/recommendations`);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.');
-      setSaving(false);
+  const saveAndAdvance = (patch: Partial<Answers>, targetStep?: Step) => {
+    const merged = { ...answers, ...patch };
+    setAnswers(merged);
+    const next = (targetStep ?? Math.min(step + 1, 6)) as Step;
+    if (step === 0 && !merged.startedAt) {
+      merged.startedAt = new Date().toISOString();
+    }
+    saveSession(merged as Partial<OnboardingAnswers>);
+    setStep(next);
+  };
+
+  // Auto-advance with a brief delay after single-select (so the user sees the
+  // selection register before the screen transitions)
+  const autoAdvance = (patch: Partial<Answers>) => {
+    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    const merged = { ...answers, ...patch };
+    setAnswers(merged);
+    autoAdvanceTimer.current = setTimeout(() => {
+      const next = Math.min(step + 1, 6) as Step;
+      if (step === 0 && !merged.startedAt) merged.startedAt = new Date().toISOString();
+      saveSession(merged as Partial<OnboardingAnswers>);
+      setStep(next);
+    }, 180);
+  };
+
+  const back = () => setStep((s) => Math.max(0, s - 1) as Step);
+
+  const goToPayoff = () => {
+    const final = { ...answers, completedAt: new Date().toISOString() };
+    saveSession(final as Partial<OnboardingAnswers>);
+    router.push(`/${locale}/onboarding/payoff`);
+  };
+
+  const toggleCert = (v: string) => {
+    const current = answers.certifications ?? [];
+    if (v === 'None of these') {
+      update({ certifications: current.includes('None of these') ? [] : ['None of these'] });
+    } else {
+      const without = current.filter((c) => c !== 'None of these' && c !== v);
+      const next = current.includes(v) ? without : [...without, v];
+      update({ certifications: next });
     }
   };
 
-  const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1));
-  const back = () => setStep((s) => Math.max(0, s - 1));
-  const isLast = step === STEPS.length - 1;
-  const canContinue = step === 0 ? p.agencyName.trim().length > 0 : true;
-
   return (
-    <div style={{ maxWidth: 720, width: '100%' }}>
-      {/* Progress */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-          <span>Step {step + 1} of {STEPS.length} · {STEPS[step]}</span>
-          <span>{Math.round(((step + 1) / STEPS.length) * 100)}%</span>
-        </div>
-        <div style={{ height: 6, background: 'rgba(42, 51, 61,0.08)', borderRadius: 999 }}>
-          <div style={{
-            height: '100%', width: `${((step + 1) / STEPS.length) * 100}%`,
-            background: 'linear-gradient(90deg, var(--accent-primary), var(--accent-secondary))',
-            borderRadius: 999, transition: 'width 0.3s ease',
-          }} />
-        </div>
-      </div>
+    <div style={{ maxWidth: 680, width: '100%' }}>
+      {/* ── Progress bar (screens 1–6 only) ──────────────────────────── */}
+      {step > 0 && <ProgressBar step={step} />}
 
-      <div className="glass-panel animate-fade-in" style={{ padding: '2.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {/* STEP 0 — Agency */}
+      <div className="glass-panel animate-fade-in" style={{ padding: '2.5rem 2.75rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+        {/* ── Screen 0: Bridge ─────────────────────────────────────────── */}
         {step === 0 && (
           <>
-            <h2 style={{ fontSize: '1.5rem' }}>Tell us about your agency</h2>
-            <Field label="Agency name">
-              <input className="form-input" value={p.agencyName} placeholder="e.g. Acme Creative"
-                onChange={(e) => set('agencyName', e.target.value)} />
-            </Field>
-            <Field label="Agency type">
-              <ChipGroup options={AGENCY_TYPES} selected={p.agencyType} multi={false}
-                onToggle={(v) => set('agencyType', p.agencyType === v ? '' : v)} />
-            </Field>
-            <Field label="Primary business location" hint="City, State">
-              <input className="form-input" value={p.location} placeholder="e.g. Austin, TX"
-                onChange={(e) => set('location', e.target.value)} />
-            </Field>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '-0.5rem' }}>
+              <Zap size={22} color="var(--accent-primary)" />
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Free match preview
+              </span>
+            </div>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.25 }}>
+              See which California government contracts fit your agency — before you sign up.
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+              Answer 6 quick questions (under 2 minutes) and we&apos;ll show you real, live opportunities scored against your profile. No credit card. No commitment.
+            </p>
+            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {['Personalized to your services and capabilities', 'Live California public-sector opportunities', 'See your match score instantly'].map((item) => (
+                <li key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  <Check size={15} color="var(--accent-primary)" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => saveAndAdvance({ startedAt: new Date().toISOString() }, 1)}
+              style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.75rem', fontSize: '1rem' }}
+            >
+              Show me my matches <ChevronRight size={18} />
+            </button>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
+              No account required yet. Signup happens after you see your results.
+            </p>
           </>
         )}
 
-        {/* STEP 1 — Service area */}
+        {/* ── Screen 1: Agency type ─────────────────────────────────────── */}
         {step === 1 && (
           <>
-            <h2 style={{ fontSize: '1.5rem' }}>Where do you work?</h2>
-            <Field label="Cities served" hint="Press Enter to add each city">
-              <TagInput values={p.citiesServed} onChange={(v) => set('citiesServed', v)} placeholder="Add a city" />
-            </Field>
-            <Field label="Counties served">
-              <TagInput values={p.countiesServed} onChange={(v) => set('countiesServed', v)} placeholder="Add a county" />
-            </Field>
-            <Field label={`Service radius — ${p.serviceRadiusMiles} miles`} hint="How far you'll travel for on-site work">
-              <input type="range" min={0} max={100} value={p.serviceRadiusMiles}
-                onChange={(e) => set('serviceRadiusMiles', Number(e.target.value))}
-                style={{ width: '100%' }} />
-            </Field>
-            <Field label="Work preference">
-              <ChipGroup options={REMOTE_PREFERENCE} selected={p.remotePreference} multi={false}
-                onToggle={(v) => set('remotePreference', p.remotePreference === v ? '' : v)} />
-            </Field>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What type of agency are you?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
+              Pick the one that fits best.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {AGENCY_TYPES.map((type) => (
+                <OptionCard
+                  key={type}
+                  label={type}
+                  selected={answers.agencyType === type}
+                  onClick={() => autoAdvance({ agencyType: type })}
+                />
+              ))}
+            </div>
           </>
         )}
 
-        {/* STEP 2 — Services */}
+        {/* ── Screen 2: Size & Revenue ─────────────────────────────────── */}
         {step === 2 && (
           <>
-            <h2 style={{ fontSize: '1.5rem' }}>What services do you offer?</h2>
-            <Field label="Services" hint="Select all that apply">
-              <ChipGroup options={SERVICES} selected={p.services} onToggle={(v) => toggleArr('services', v)} />
-            </Field>
-            <Field label="How do you typically work?">
-              <ChipGroup options={ROLES} selected={p.role} multi={false}
-                onToggle={(v) => set('role', p.role === v ? '' : v)} />
-            </Field>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Tell us about your team</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Team size</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {TEAM_SIZES.map((s) => (
+                  <Chip key={s} label={s} active={answers.teamSize === s} onClick={() => update({ teamSize: s })} />
+                ))}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Annual revenue (approx.)</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {ANNUAL_REVENUE_RANGES.map((r) => (
+                  <Chip key={r} label={r} active={answers.annualRevenue === r} onClick={() => update({ annualRevenue: r })} />
+                ))}
+              </div>
+            </div>
           </>
         )}
 
-        {/* STEP 3 — Focus */}
+        {/* ── Screen 3: Primary capability ─────────────────────────────── */}
         {step === 3 && (
           <>
-            <h2 style={{ fontSize: '1.5rem' }}>Who and what do you target?</h2>
-            <Field label="Industries served">
-              <ChipGroup options={INDUSTRIES} selected={p.industries} onToggle={(v) => toggleArr('industries', v)} />
-            </Field>
-            <Field label="Target opportunity types">
-              <ChipGroup options={TARGET_OPPORTUNITY_TYPES} selected={p.targetOpportunityTypes}
-                onToggle={(v) => toggleArr('targetOpportunityTypes', v)} />
-            </Field>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What is your primary capability?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
+              The service you&apos;re best known for.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {PRIMARY_CAPABILITIES.map((cap) => (
+                <OptionCard
+                  key={cap}
+                  label={cap}
+                  selected={answers.primaryCapability === cap}
+                  onClick={() => autoAdvance({ primaryCapability: cap })}
+                />
+              ))}
+            </div>
           </>
         )}
 
-        {/* STEP 4 — Capacity */}
+        {/* ── Screen 4: Gov experience ─────────────────────────────────── */}
         {step === 4 && (
           <>
-            <h2 style={{ fontSize: '1.5rem' }}>Your capacity</h2>
-            <Field label="Team size">
-              <ChipGroup options={TEAM_SIZES} selected={p.teamSize} multi={false}
-                onToggle={(v) => set('teamSize', p.teamSize === v ? '' : v)} />
-            </Field>
-            <Field label="Delivery capacity">
-              <ChipGroup options={DELIVERY_CAPACITY} selected={p.deliveryCapacity} multi={false}
-                onToggle={(v) => set('deliveryCapacity', p.deliveryCapacity === v ? '' : v)} />
-            </Field>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <Field label="Preferred contract — min ($)">
-                <input className="form-input" type="number" value={p.minContract}
-                  onChange={(e) => set('minContract', e.target.value === '' ? '' : Number(e.target.value))} placeholder="50000" />
-              </Field>
-              <Field label="Preferred contract — max ($)">
-                <input className="form-input" type="number" value={p.maxContract}
-                  onChange={(e) => set('maxContract', e.target.value === '' ? '' : Number(e.target.value))} placeholder="500000" />
-              </Field>
-            </div>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-              <Field label="Largest project you can deliver ($)">
-                <input className="form-input" type="number" value={p.largestProjectSize}
-                  onChange={(e) => set('largestProjectSize', e.target.value === '' ? '' : Number(e.target.value))} placeholder="1000000" />
-              </Field>
-              <Field label="Monthly media spend capacity ($)" hint="If applicable">
-                <input className="form-input" type="number" value={p.monthlyMediaSpend}
-                  onChange={(e) => set('monthlyMediaSpend', e.target.value === '' ? '' : Number(e.target.value))} placeholder="100000" />
-              </Field>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Have you done government work before?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
+              This helps us surface contracts at the right complexity level.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {GOV_EXPERIENCE_OPTIONS.map((opt) => (
+                <OptionCard
+                  key={opt.value}
+                  label={opt.label}
+                  description={opt.description}
+                  selected={answers.priorGovExperience === opt.value}
+                  onClick={() => autoAdvance({ priorGovExperience: opt.value })}
+                />
+              ))}
             </div>
           </>
         )}
 
-        {/* STEP 5 — Credentials */}
+        {/* ── Screen 5: Certifications ─────────────────────────────────── */}
         {step === 5 && (
           <>
-            <h2 style={{ fontSize: '1.5rem' }}>Certifications & coverage</h2>
-            <Field label="Certifications">
-              <ChipGroup options={CERTIFICATIONS} selected={p.certifications} onToggle={(v) => toggleArr('certifications', v)} />
-            </Field>
-            <Field label="Insurance coverage">
-              <ChipGroup options={INSURANCE} selected={p.insurance} onToggle={(v) => toggleArr('insurance', v)} />
-            </Field>
-            <Field label="Prior government / public-sector experience">
-              <ChipGroup options={PRIOR_GOV_EXPERIENCE} selected={p.priorGovExperience} multi={false}
-                onToggle={(v) => set('priorGovExperience', p.priorGovExperience === v ? '' : v)} />
-            </Field>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Do you hold any certifications?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
+              Many public contracts have set-aside preferences. Select all that apply.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              {[...CERTIFICATIONS, 'None of these'].map((cert) => (
+                <Chip
+                  key={cert}
+                  label={cert}
+                  active={(answers.certifications ?? []).includes(cert)}
+                  onClick={() => toggleCert(cert)}
+                />
+              ))}
+            </div>
           </>
         )}
 
-        {/* STEP 6 — Readiness */}
+        {/* ── Screen 6: California presence ────────────────────────────── */}
         {step === 6 && (
           <>
-            <h2 style={{ fontSize: '1.5rem' }}>Proposal readiness & edge</h2>
-            <Field label="What do you already have?" hint="We'll build per-opportunity checklists from this">
-              <ChipGroup options={PROPOSAL_READINESS} selected={p.proposalReadiness} onToggle={(v) => toggleArr('proposalReadiness', v)} />
-            </Field>
-            <Field label="Your differentiators">
-              <ChipGroup options={DIFFERENTIATORS} selected={p.differentiators} onToggle={(v) => toggleArr('differentiators', v)} />
-            </Field>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Where are you based in California?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
+              Most contracts here are for California agencies.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {CA_PRESENCE_OPTIONS.map((opt) => (
+                <OptionCard
+                  key={opt}
+                  label={opt}
+                  selected={answers.caPresence === opt}
+                  onClick={() => update({ caPresence: opt })}
+                />
+              ))}
+            </div>
           </>
         )}
 
-        {/* STEP 7 — Alerts & keywords */}
-        {step === 7 && (
-          <>
-            <h2 style={{ fontSize: '1.5rem' }}>Tune your results</h2>
-            <Field label="Keywords to prioritize" hint="Opportunities matching these rank higher">
-              <TagInput values={p.keywords} onChange={(v) => set('keywords', v)} placeholder="e.g. branding" />
-            </Field>
-            <Field label="Keywords to exclude" hint="Opportunities matching these are pushed down">
-              <TagInput values={p.excludeKeywords} onChange={(v) => set('excludeKeywords', v)} placeholder="e.g. construction" />
-            </Field>
-            <Field label="Alert preferences">
-              <ChipGroup options={ALERT_PREFERENCES} selected={p.alertPreferences} onToggle={(v) => toggleArr('alertPreferences', v)} />
-            </Field>
-          </>
-        )}
+        {/* ── Navigation (screens 1–6 only) ────────────────────────────── */}
+        {step > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={back}
+              style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.6rem 1.1rem', fontSize: '0.88rem' }}
+            >
+              <ChevronLeft size={16} /> Back
+            </button>
 
-        {error && (
-          <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171', padding: '0.75rem', borderRadius: 8, fontSize: '0.875rem' }}>
-            {error}
-          </div>
-        )}
-
-        {/* Nav */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' }}>
-          <button type="button" className="btn btn-secondary" onClick={back} disabled={step === 0}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: step === 0 ? 0.4 : 1 }}>
-            <ChevronLeft size={16} /> Back
-          </button>
-
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            {!isLast && (
-              <button type="button" className="btn btn-secondary" onClick={submit} disabled={saving}>
-                Skip for now
-              </button>
-            )}
-            {isLast ? (
-              <button type="button" className="btn btn-primary" onClick={submit} disabled={saving}>
-                {saving ? 'Saving…' : 'Finish & see opportunities'}
-              </button>
-            ) : (
-              <button type="button" className="btn btn-primary" onClick={next} disabled={!canContinue}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', opacity: canContinue ? 1 : 0.5 }}>
+            {step < 6 ? (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => saveAndAdvance({})}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.6rem 1.25rem', fontSize: '0.88rem' }}
+              >
                 Continue <ChevronRight size={16} />
               </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={goToPayoff}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.7rem 1.4rem', fontSize: '0.92rem' }}
+              >
+                See my matches <ChevronRight size={18} />
+              </button>
             )}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

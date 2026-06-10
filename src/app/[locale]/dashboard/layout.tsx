@@ -22,7 +22,7 @@ export default async function DashboardLayout({
   // First-time gate: send new users through onboarding before the dashboard.
   const profile = await readProfile();
   if (!isOnboarded(profile)) {
-    redirect(`/${locale}/onboarding`);
+    redirect(`/${locale}/onboarding/complete`);
   }
 
   return (

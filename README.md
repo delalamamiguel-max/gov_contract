@@ -142,6 +142,43 @@ highest-score-first.
 All user-facing reads go through the Supabase store only (never SAM.gov live), so
 search stays fast and resilient even when upstream sources are down.
 
+## Onboarding flow
+
+BidFlare uses a **value-first onboarding** where agencies answer 6 questions and see a real match preview _before_ creating an account.
+
+### New flow (pre-signup)
+
+```
+Landing page CTA
+  → /en/onboarding           (Bridge screen — no auth required)
+  → Screens 1–6              (Agency type · Size/revenue · Primary capability
+                               · Gov experience · Certifications · CA presence)
+  → /en/onboarding/payoff    (Teaser card — top match blurred behind a CTA)
+  → /en/signup               (Signup wall — at the END)
+  → /en/onboarding/complete  (Hydrates profile from localStorage → dashboard)
+  → /en/dashboard/recommendations
+```
+
+All 6 answers are persisted in **`localStorage`** (key: `bidflare_onboarding`, 24-hour TTL) so users can refresh or close the browser mid-flow and resume without starting over. After signup the `/onboarding/complete` page reads the session, POSTs it to `/api/profile`, clears localStorage, and redirects to the dashboard.
+
+### Teaser API (`/api/onboarding-teaser`)
+
+Unauthenticated `GET ?data=<base64url>`. Decodes `OnboardingAnswers`, runs the deterministic scoring engine against the full opportunity database, and returns the single top match plus a count of all matches at ≥40 score. Returns only non-sensitive fields (title, agency, score, deadline, estimated value). The description area is blurred client-side by the payoff screen.
+
+### Profile hydration fields
+
+Three new fields added in the onboarding flow:
+
+| Field | DB column | Meaning |
+|---|---|---|
+| `annualRevenue` | `annual_revenue` | Revenue range selected on screen 2 |
+| `primaryCapability` | `primary_capability` | Primary service selected on screen 3 |
+| `caPresence` | `ca_presence` | California presence selected on screen 6 |
+
+### Preserving full profile editing
+
+The new onboarding only collects 6 quick answers. The full 8-section profile editor (service area, services checklist, industries, capacity, credentials, etc.) lives at **`/en/dashboard/settings`** and is available any time after signup. A "Complete profile" nudge appears on the recommendations and search pages whenever the profile is sparse.
+
 ## Routing & auth
 
 - `proxy.ts` handles i18n routing and refreshes the Supabase session on every

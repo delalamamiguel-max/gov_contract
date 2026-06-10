@@ -2,9 +2,11 @@ import { useTranslations } from 'next-intl';
 import { ArrowRight, Search, Zap, Globe } from 'lucide-react';
 import Link from 'next/link';
 import BidFlareLogo from '@/components/BidFlareLogo';
+import { getLocale } from 'next-intl/server';
 
-export default function Home() {
+export default async function Home() {
   const t = useTranslations('Index');
+  const locale = await getLocale();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -20,10 +22,10 @@ export default function Home() {
       }}>
         <BidFlareLogo height={30} />
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <Link href="/" style={{ color: 'var(--text-secondary)', fontWeight: 500, padding: '0.5rem 1rem' }}>{t('login')}</Link>
-          <button className="btn btn-primary" style={{ padding: '0.6rem 1.25rem' }}>
+          <Link href={`/${locale}/login`} style={{ color: 'var(--text-secondary)', fontWeight: 500, padding: '0.5rem 1rem' }}>{t('login')}</Link>
+          <Link href={`/${locale}/onboarding`} className="btn btn-primary" style={{ padding: '0.6rem 1.25rem' }}>
             {t('signup')}
-          </button>
+          </Link>
         </div>
       </nav>
 
@@ -64,12 +66,12 @@ export default function Home() {
         </p>
 
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-          <button className="btn btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }}>
+          <Link href={`/${locale}/onboarding`} className="btn btn-primary" style={{ padding: '1rem 2rem', fontSize: '1.125rem', display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             Start For Free <ArrowRight size={20} />
-          </button>
-          <button className="btn btn-secondary" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }}>
-            Book Demo
-          </button>
+          </Link>
+          <Link href={`/${locale}/login`} className="btn btn-secondary" style={{ padding: '1rem 2rem', fontSize: '1.125rem' }}>
+            Sign In
+          </Link>
         </div>
       </main>
 

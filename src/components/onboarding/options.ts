@@ -143,3 +143,41 @@ export const ALERT_PREFERENCES = [
   'High-match opportunities only',
   'All relevant opportunities',
 ];
+
+// ---------------------------------------------------------------------------
+// New value-first onboarding flow (6-question wizard, pre-signup)
+// ---------------------------------------------------------------------------
+
+export const ANNUAL_REVENUE_RANGES = [
+  'Under $250K',
+  '$250K – $500K',
+  '$500K – $1M',
+  '$1M – $3M',
+  '$3M+',
+];
+
+export const PRIMARY_CAPABILITIES = [
+  'Digital marketing',
+  'Branding & design',
+  'Public relations',
+  'Website / web app development',
+  'Video production',
+  'Print / OOH advertising',
+  'Media buying',
+  'Market research',
+  'Translation / multilingual',
+  'Full-service',
+];
+
+export const GOV_EXPERIENCE_OPTIONS = [
+  { value: 'yes', label: 'Yes — we\'ve won public contracts', description: 'Prime contractor on government work' },
+  { value: 'limited', label: 'Yes — as a subcontractor', description: 'Supported a prime contractor on public work' },
+  { value: 'no', label: 'No — but we\'re ready', description: 'First time pursuing public-sector work' },
+];
+
+export const CA_PRESENCE_OPTIONS = [
+  'HQ in California',
+  'Remote — we work anywhere in CA',
+  'Regional office in California',
+  'No California presence yet',
+];

@@ -50,6 +50,10 @@ export interface AgencyProfile {
   excludeKeywords?: string[];
   // Alerts
   alertPreferences?: string[];
+  // Onboarding answers (new value-first flow)
+  annualRevenue?: string | null;
+  primaryCapability?: string | null;
+  caPresence?: string | null;
   // Legacy / federal fields (kept for backward compatibility)
   naicsCodes?: string[];
   setAsideTypes?: string[];
@@ -120,6 +124,9 @@ export function normalizeProfile(input: unknown): AgencyProfile {
     keywords: arr(b.keywords),
     excludeKeywords: arr(b.excludeKeywords),
     alertPreferences: arr(b.alertPreferences),
+    annualRevenue: str(b.annualRevenue),
+    primaryCapability: str(b.primaryCapability),
+    caPresence: str(b.caPresence),
     naicsCodes: arr(b.naicsCodes),
     setAsideTypes: arr(b.setAsideTypes),
     onboardingCompletedAt: str(b.onboardingCompletedAt),
@@ -206,6 +213,9 @@ export function profileToRow(profileKey: string, p: AgencyProfile): Record<strin
     max_contract: p.maxContract ?? null,
     largest_project_size: p.largestProjectSize ?? null,
     monthly_media_spend: p.monthlyMediaSpend ?? null,
+    annual_revenue: p.annualRevenue ?? null,
+    primary_capability: p.primaryCapability ?? null,
+    ca_presence: p.caPresence ?? null,
     data: p,
     onboarding_completed_at: p.onboardingCompletedAt ?? null,
     last_feed_seen_at: p.lastFeedSeenAt ?? null,
