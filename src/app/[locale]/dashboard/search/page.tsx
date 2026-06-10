@@ -2,9 +2,10 @@ export const dynamic = 'force-dynamic';
 import { queryOpportunities, countOpportunities } from '@/lib/opportunities';
 import { readProfile, hasProfile } from '@/lib/profile';
 import { computeAssessment } from '@/lib/assessment';
+import { applyKimiAdjustments } from '@/lib/aiScoring';
 import { computeChecklist } from '@/lib/checklist';
 import { readFeedbackSignals } from '@/lib/feedback';
-import ContractRow from '@/components/ContractRow';
+import SearchResults from '@/components/SearchResults';
 import SearchInput from '@/components/SearchInput';
 import FilterModal from '@/components/FilterModal';
 import DistanceSlider from '@/components/DistanceSlider';
@@ -69,6 +70,10 @@ export default async function SearchPage({
       ? assessed
       : assessed.filter(({ a }) => a.withinRadius || a.remoteEligible);
   radiusFiltered.sort((x, y) => y.a.matchScore - x.a.matchScore);
+  // AI nuance pass (Kimi) on the top results above the fold. Cache-first, safe
+  // no-op when unconfigured; an adjustment can reorder, so re-sort after.
+  await applyKimiAdjustments(radiusFiltered, profile, 10);
+  radiusFiltered.sort((x, y) => y.a.matchScore - x.a.matchScore);
   const hiddenByRadius = assessed.length - radiusFiltered.length;
 
   const displayData = radiusFiltered.map(({ o, a }) => ({
@@ -130,45 +135,47 @@ export default async function SearchPage({
         </div>
       )}
 
-      <div style={{ display: 'grid', gap: '1rem' }}>
-        {displayData.length === 0 ? (
-          <div className="glass-panel" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
-            {dbUnavailable ? (
-              <>
-                <p style={{ fontSize: '1.1rem' }}>Opportunity database isn&apos;t available right now.</p>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>This is a configuration issue, not your search. Please try again shortly.</p>
-              </>
-            ) : searchError ? (
-              <>
-                <p style={{ fontSize: '1.1rem' }}>We couldn&apos;t load opportunities.</p>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{searchError} Try again in a moment.</p>
-              </>
-            ) : totalInDb === 0 ? (
-              <>
-                <p style={{ fontSize: '1.1rem' }}>No opportunities have been synced yet.</p>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>The nightly sync pulls fresh opportunities from SAM.gov into your database. Check back after the next sync runs.</p>
-              </>
-            ) : hiddenByRadius > 0 ? (
-              <>
-                <p style={{ fontSize: '1.1rem' }}>All {hiddenByRadius} matches are outside your {radius} mile radius.</p>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Increase the distance slider, or set your preference to remote/hybrid to see remote-eligible work.</p>
-              </>
-            ) : query ? (
-              <>
-                <p style={{ fontSize: '1.1rem' }}>No matches for &ldquo;{query}&rdquo; in {totalInDb} synced opportunities.</p>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Try a broader term like &ldquo;marketing&rdquo;, &ldquo;communications&rdquo;, or &ldquo;website&rdquo;, or adjust your filters.</p>
-              </>
-            ) : (
-              <>
-                <p style={{ fontSize: '1.1rem' }}>No opportunities to show yet.</p>
-                <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Try searching &ldquo;marketing&rdquo;, &ldquo;advertising&rdquo;, &ldquo;public relations&rdquo;, or &ldquo;website design&rdquo;.</p>
-              </>
-            )}
-          </div>
-        ) : (
-          displayData.map((opp) => <ContractRow key={opp.id} opp={opp} radius={radius} />)
-        )}
-      </div>
+      {displayData.length === 0 ? (
+        <div className="glass-panel" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+          {dbUnavailable ? (
+            <>
+              <p style={{ fontSize: '1.1rem' }}>Opportunity database isn&apos;t available right now.</p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>This is a configuration issue, not your search. Please try again shortly.</p>
+            </>
+          ) : searchError ? (
+            <>
+              <p style={{ fontSize: '1.1rem' }}>We couldn&apos;t load opportunities.</p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{searchError} Try again in a moment.</p>
+            </>
+          ) : totalInDb === 0 ? (
+            <>
+              <p style={{ fontSize: '1.1rem' }}>No opportunities have been synced yet.</p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>The nightly sync pulls fresh opportunities from SAM.gov into your database. Check back after the next sync runs.</p>
+            </>
+          ) : hiddenByRadius > 0 ? (
+            <>
+              <p style={{ fontSize: '1.1rem' }}>All {hiddenByRadius} matches are outside your {radius} mile radius.</p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Increase the distance slider, or set your preference to remote/hybrid to see remote-eligible work.</p>
+            </>
+          ) : query ? (
+            <>
+              <p style={{ fontSize: '1.1rem' }}>No matches for &ldquo;{query}&rdquo; in {totalInDb} synced opportunities.</p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Try a broader term like &ldquo;marketing&rdquo;, &ldquo;communications&rdquo;, or &ldquo;website&rdquo;, or adjust your filters.</p>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: '1.1rem' }}>No opportunities to show yet.</p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Try searching &ldquo;marketing&rdquo;, &ldquo;advertising&rdquo;, &ldquo;public relations&rdquo;, or &ldquo;website design&rdquo;.</p>
+            </>
+          )}
+        </div>
+      ) : (
+        <SearchResults
+          topResults={displayData.filter((d) => d.assessment.matchScore >= 60)}
+          otherResults={displayData.filter((d) => d.assessment.matchScore < 60)}
+          radius={radius}
+        />
+      )}
     </div>
   );
 }

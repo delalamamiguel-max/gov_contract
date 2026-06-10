@@ -5,6 +5,7 @@ import { getRecommendations, type RecommendationItem } from '@/lib/recommendatio
 import { countOpportunities } from '@/lib/opportunities';
 import ContractRow from '@/components/ContractRow';
 import FeedSeenBeacon from '@/components/FeedSeenBeacon';
+import ShowMoreFeed from '@/components/ShowMoreFeed';
 import { Sparkles, Clock, Layers } from 'lucide-react';
 
 function ItemBlock({ item, radius }: { item: RecommendationItem; radius: number }) {
@@ -100,7 +101,12 @@ export default async function RecommendationsPage() {
                   No new matching opportunities since you last checked. We&apos;ll surface fresh ones here after the next sync.
                 </div>
               ) : (
-                rec.newItems.map((item) => <ItemBlock key={item.id} item={item} radius={radius} />)
+                <ShowMoreFeed
+                  items={rec.newItems}
+                  initialVisible={5}
+                  moreLabel="new matches"
+                  renderItem={(item) => <ItemBlock key={item.id} item={item} radius={radius} />}
+                />
               )}
             </section>
           )}
@@ -121,9 +127,12 @@ export default async function RecommendationsPage() {
                 </p>
               </div>
             ) : (
-              (rec.isFirstVisit ? rec.newItems : rec.olderItems).map((item) => (
-                <ItemBlock key={item.id} item={item} radius={radius} />
-              ))
+              <ShowMoreFeed
+                items={rec.isFirstVisit ? rec.newItems : rec.olderItems}
+                initialVisible={5}
+                moreLabel="matches"
+                renderItem={(item) => <ItemBlock key={item.id} item={item} radius={radius} />}
+              />
             )}
           </section>
 
@@ -162,9 +171,12 @@ export default async function RecommendationsPage() {
               <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
                 Lower match scores — worth a look if you want to broaden your pipeline.
               </p>
-              {rec.otherItems.map((item) => (
-                <OtherItemBlock key={item.id} item={item} radius={radius} />
-              ))}
+              <ShowMoreFeed
+                items={rec.otherItems}
+                initialVisible={3}
+                moreLabel="other opportunities"
+                renderItem={(item) => <OtherItemBlock key={item.id} item={item} radius={radius} />}
+              />
             </section>
           )}
         </>

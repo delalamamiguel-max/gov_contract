@@ -2,6 +2,10 @@ import type { AgencyProfile } from '@/lib/profile';
 import { queryOpportunities, type OpportunityRecord } from '@/lib/opportunities';
 import { computeAssessment, type OpportunityAssessment, type FeedbackSignalInput } from '@/lib/assessment';
 import { computeChecklist, type ProposalChecklist } from '@/lib/checklist';
+import { applyKimiAdjustments } from '@/lib/aiScoring';
+
+/** How many top candidates (by deterministic score) get an AI nuance review. */
+const KIMI_TOP_N = 20;
 
 // ---------------------------------------------------------------------------
 // Recommendations / personalized feed. Backend data-access layer that scores
@@ -172,6 +176,15 @@ export async function getRecommendations(
       return { o, a };
     })
     .filter(({ a }) => a.matchScore >= otherFloor && (a.withinRadius || a.remoteEligible));
+
+  // AI nuance pass (Kimi): adjust the top candidates by deterministic score so
+  // the primary feed reflects nuances keyword-matching can't see. Sort first so
+  // the "top N" are the right ones; the adjustment can reorder, so we rely on the
+  // per-block sortBlock() below to re-order. Hard gates remain immutable. Safe
+  // no-op when AI is unconfigured or unreachable. Lower-confidence "other"
+  // matches are intentionally not AI-reviewed (saves budget).
+  allScored.sort((x, y) => y.a.matchScore - x.a.matchScore);
+  await applyKimiAdjustments(allScored, profile, KIMI_TOP_N);
 
   const scored = allScored.filter(({ a }) => a.matchScore >= minScore);
   const otherScored = allScored.filter(({ a }) => a.matchScore < minScore);

@@ -116,8 +116,21 @@ const NATIONWIDE_HINTS = ['nationwide', 'various', 'multiple', 'united states', 
  */
 export function isRemoteEligible(text: string, placeOfPerformance?: string | null): boolean {
   const pop = (placeOfPerformance || '').toLowerCase();
-  if (!pop || NATIONWIDE_HINTS.some((h) => pop.includes(h))) return true;
+  // A blank place-of-performance is UNKNOWN, not remote. Assuming remote here was
+  // the root cause of out-of-area contracts (e.g. a Sacramento on-site job with no
+  // POP field) scoring as high matches for a faraway agency. Let the distance
+  // check decide instead.
+  if (!pop) return false;
+  if (NATIONWIDE_HINTS.some((h) => pop.includes(h))) return true;
   const t = text.toLowerCase();
-  const digital = ['website', 'web design', 'web development', 'seo', 'social media', 'digital', 'content', 'email marketing', 'branding', 'graphic design', 'video', 'copywrit', 'strategy', 'analytics'];
+  // Only SPECIFIC digital-delivery terms bypass distance. Generic single words
+  // like 'strategy', 'content', 'digital', 'analytics', 'branding', 'video'
+  // appear in nearly every marketing solicitation (including on-site ones) and
+  // were incorrectly flipping local work to remote-eligible.
+  const digital = [
+    'website', 'web design', 'web development', 'web application',
+    'seo', 'social media', 'email marketing', 'digital marketing',
+    'graphic design', 'video production', 'copywriting',
+  ];
   return digital.some((d) => t.includes(d));
 }

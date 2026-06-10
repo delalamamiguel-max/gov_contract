@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, Plus, Globe, MapPin } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Globe, MapPin, Wand2 } from 'lucide-react';
 import type { OpportunityAssessment, MatchLabel } from '@/lib/assessment';
 import type { ProposalChecklist as Checklist } from '@/lib/checklist';
 import type { RfpAssessment } from '@/lib/rfp';
@@ -164,7 +164,12 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
         flexDirection: 'column',
         cursor: 'pointer',
         transition: 'all 0.3s ease',
-        border: expanded ? '1px solid var(--accent-primary)' : '1px solid var(--border-color)',
+        border: expanded
+          ? '1px solid var(--accent-primary)'
+          : a.matchScore < 50
+          ? '1px solid rgba(239,68,68,0.35)'
+          : '1px solid var(--border-color)',
+        borderLeft: !expanded && a.matchScore < 50 ? '3px solid #ef4444' : undefined,
         background: expanded ? 'rgba(26, 169, 201, 0.06)' : 'rgba(42, 51, 61, 0.03)',
       }}
       onClick={toggleExpand}
@@ -179,6 +184,14 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
               <span style={{ padding: '0.2rem 0.5rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 600, background: chip.bg, color: chip.fg }}>
                 {a.label}
               </span>
+              {a.kimiReason && (
+                <span
+                  title={`AI review: ${a.kimiReason}`}
+                  style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent-primary)' }}
+                >
+                  <Wand2 size={13} />
+                </span>
+              )}
             </span>
           </div>
           <p style={{ color: 'var(--text-secondary)' }}>
@@ -255,7 +268,23 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
 
           {/* Tab content */}
           <div onClick={(e) => e.stopPropagation()}>
-            {tab === 'assessment' && <OpportunityAssessmentCard a={a} />}
+            {tab === 'assessment' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {a.kimiReason && (
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
+                    padding: '0.6rem 0.75rem', borderRadius: 8,
+                    background: 'rgba(26,169,201,0.08)',
+                    border: '1px solid rgba(26,169,201,0.2)',
+                    fontSize: '0.82rem', color: 'var(--text-secondary)',
+                  }}>
+                    <Wand2 size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0, marginTop: 2 }} />
+                    <span><strong style={{ color: 'var(--accent-primary)' }}>AI review note:</strong> {a.kimiReason}</span>
+                  </div>
+                )}
+                <OpportunityAssessmentCard a={a} />
+              </div>
+            )}
             {tab === 'readiness' && <ProposalChecklist checklist={opp.checklist} />}
             {tab === 'rfp' && (
               rfpLoading ? (

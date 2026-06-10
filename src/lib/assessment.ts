@@ -50,6 +50,11 @@ export interface OpportunityAssessment {
   remoteEligible: boolean;
   distanceMiles: number | null;
   withinRadius: boolean;
+  // AI nuance layer (Kimi). Present only when the opportunity was AI-reviewed.
+  // The deterministic matchScore above is already adjusted by kimiAdjustment when
+  // these are set; kimiReason explains what nuance the keyword engine missed.
+  kimiAdjustment?: number;
+  kimiReason?: string;
 }
 
 export interface AssessmentOpportunity {
@@ -62,7 +67,7 @@ export interface AssessmentOpportunity {
   placeOfPerformance?: string | null;
 }
 
-function labelFor(score: number): MatchLabel {
+export function labelFor(score: number): MatchLabel {
   if (score >= 80) return 'Strong Match';
   if (score >= 60) return 'Good Match';
   if (score >= 40) return 'Possible Match';
@@ -96,11 +101,21 @@ export function computeAssessment(
   const remoteEligible = isRemoteEligible(hay, opp.placeOfPerformance);
   const distanceMiles = estimateDistanceMiles(profile.location, opp.placeOfPerformance);
   const pref = profile.remotePreference;
+  // Location gating. Previously ANY `hybrid` (or `remote`) preference made every
+  // opportunity serviceable regardless of distance — so a Dallas/hybrid agency
+  // saw 1,300-mi California on-site contracts as 80%+ matches. Fixed:
+  //  - remote pref or genuinely remote-eligible work → distance irrelevant
+  //  - hybrid → real (generous) check at 2× the radius (willing to travel some,
+  //    not cross-country)
+  //  - local/other → strict radius
+  // Unknown distance never hard-fails.
   const locationServiceable =
-    remoteEligible || pref === 'remote' || pref === 'hybrid'
+    remoteEligible || pref === 'remote'
       ? true
       : distanceMiles === null
       ? true // unknown — don't hard-fail
+      : pref === 'hybrid'
+      ? distanceMiles <= radius * 2
       : distanceMiles <= radius;
   const withinRadius = distanceMiles === null ? true : distanceMiles <= radius;
 
