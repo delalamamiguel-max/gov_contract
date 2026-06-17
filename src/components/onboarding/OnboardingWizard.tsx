@@ -136,11 +136,19 @@ const DEFAULT_ANSWERS: Answers = {
   caPresence: '',
 };
 
-export default function OnboardingWizard() {
+export default function OnboardingWizard({
+  mode = 'signup',
+  initialAnswers,
+  onComplete,
+}: {
+  mode?: 'signup' | 're-onboard';
+  initialAnswers?: Partial<OnboardingAnswers>;
+  onComplete?: (finalAnswers: Partial<OnboardingAnswers>) => void;
+} = {}) {
   const router = useRouter();
   const locale = useLocale();
   const [step, setStep] = useState<Step>(0);
-  const [answers, setAnswers] = useState<Answers>(DEFAULT_ANSWERS);
+  const [answers, setAnswers] = useState<Answers>({ ...DEFAULT_ANSWERS, ...initialAnswers });
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Restore session on mount
@@ -186,7 +194,11 @@ export default function OnboardingWizard() {
   const goToPayoff = () => {
     const final = { ...answers, completedAt: new Date().toISOString() };
     saveSession(final as Partial<OnboardingAnswers>);
-    router.push(`/${locale}/onboarding/payoff`);
+    if (onComplete) {
+      onComplete(final);
+    } else {
+      router.push(`/${locale}/onboarding/payoff`);
+    }
   };
 
   const toggleCert = (v: string) => {
@@ -208,7 +220,7 @@ export default function OnboardingWizard() {
       <div className="glass-panel animate-fade-in" style={{ padding: '2.5rem 2.75rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
 
         {/* ── Screen 0: Bridge ─────────────────────────────────────────── */}
-        {step === 0 && (
+        {step === 0 && mode === 'signup' && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '-0.5rem' }}>
               <Zap size={22} color="var(--accent-primary)" />
@@ -241,6 +253,31 @@ export default function OnboardingWizard() {
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
               No account required yet. Signup happens after you see your results.
             </p>
+          </>
+        )}
+
+        {step === 0 && mode === 're-onboard' && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '-0.5rem' }}>
+              <Zap size={22} color="var(--accent-primary)" />
+              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Rebuild Profile
+              </span>
+            </div>
+            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.25 }}>
+              Let&apos;s get your business profile back on track.
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
+              We&apos;ll walk you through 6 quick questions to reset your core details and recalibrate your contract recommendations.
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => saveAndAdvance({ startedAt: new Date().toISOString() }, 1)}
+              style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.75rem', fontSize: '1rem' }}
+            >
+              Let&apos;s go <ChevronRight size={18} />
+            </button>
           </>
         )}
 
@@ -396,7 +433,7 @@ export default function OnboardingWizard() {
                 onClick={goToPayoff}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.7rem 1.4rem', fontSize: '0.92rem' }}
               >
-                See my matches <ChevronRight size={18} />
+                {mode === 're-onboard' ? 'Save & finish' : 'See my matches'} <ChevronRight size={18} />
               </button>
             )}
           </div>

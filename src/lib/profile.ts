@@ -80,6 +80,43 @@ export const EMPTY_PROFILE: AgencyProfile = {
   setAsideTypes: [],
 };
 
+/**
+ * Fields cleared during a "Rebuild business profile" reset.
+ * Keywords, exclude keywords, alert preferences, and bookkeeping fields
+ * (lastFeedSeenAt) are PRESERVED — they are user-curated tuning settings,
+ * not onboarding answers.
+ */
+export const RESET_PROFILE_FIELDS: (keyof AgencyProfile)[] = [
+  'agencyName',
+  'location',
+  'citiesServed',
+  'countiesServed',
+  'serviceRadiusMiles',
+  'remotePreference',
+  'agencyType',
+  'services',
+  'industries',
+  'targetOpportunityTypes',
+  'certifications',
+  'role',
+  'teamSize',
+  'deliveryCapacity',
+  'largestProjectSize',
+  'monthlyMediaSpend',
+  'minContract',
+  'maxContract',
+  'insurance',
+  'priorGovExperience',
+  'proposalReadiness',
+  'differentiators',
+  'annualRevenue',
+  'primaryCapability',
+  'caPresence',
+  'naicsCodes',
+  'setAsideTypes',
+  'onboardingCompletedAt',
+];
+
 /** Coerce arbitrary input into a clean AgencyProfile (defensive against bad bodies). */
 export function normalizeProfile(input: unknown): AgencyProfile {
   const b = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;

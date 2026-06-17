@@ -6,7 +6,10 @@ import {
   AGENCY_TYPES, SERVICES, INDUSTRIES, TARGET_OPPORTUNITY_TYPES, DELIVERY_CAPACITY,
   TEAM_SIZES, CERTIFICATIONS, INSURANCE, PRIOR_GOV_EXPERIENCE, PROPOSAL_READINESS,
   DIFFERENTIATORS, ROLES, REMOTE_PREFERENCE, ALERT_PREFERENCES,
+  ANNUAL_REVENUE_RANGES, PRIMARY_CAPABILITIES, CA_PRESENCE_OPTIONS,
 } from '@/components/onboarding/options';
+import { useRouter } from 'next/navigation';
+import { useLocale } from 'next-intl';
 
 // Shape kept in sync with AgencyProfile in src/lib/profile.ts. Empty strings/
 // arrays make controlled inputs happy until the GET arrives.
@@ -36,6 +39,9 @@ interface ProfileState {
   keywords: string[];
   excludeKeywords: string[];
   alertPreferences: string[];
+  annualRevenue: string;
+  primaryCapability: string;
+  caPresence: string;
 }
 
 const EMPTY: ProfileState = {
@@ -44,7 +50,7 @@ const EMPTY: ProfileState = {
   targetOpportunityTypes: [], teamSize: '', deliveryCapacity: '', largestProjectSize: '',
   minContract: '', maxContract: '', monthlyMediaSpend: '', certifications: [], insurance: [],
   priorGovExperience: '', proposalReadiness: [], differentiators: [], keywords: [],
-  excludeKeywords: [], alertPreferences: [],
+  excludeKeywords: [], alertPreferences: [], annualRevenue: '', primaryCapability: '', caPresence: '',
 };
 
 // ---- Reusable UI bits (mirrors OnboardingWizard) ----
@@ -182,15 +188,21 @@ function fromServer(p: any): ProfileState {
     keywords: a(p?.keywords),
     excludeKeywords: a(p?.excludeKeywords),
     alertPreferences: a(p?.alertPreferences),
+    annualRevenue: s(p?.annualRevenue),
+    primaryCapability: s(p?.primaryCapability),
+    caPresence: s(p?.caPresence),
   };
 }
 
 export default function SettingsPage() {
+  const router = useRouter();
+  const locale = useLocale();
   const [p, setP] = useState<ProfileState>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const [showResetModal, setShowResetModal] = useState(false);
 
   // Load existing profile so the form reflects what the user answered at signup.
   useEffect(() => {
@@ -273,9 +285,17 @@ export default function SettingsPage() {
           <Field label="Agency name">
             <input className="form-input" value={p.agencyName} onChange={(e) => set('agencyName', e.target.value)} placeholder="e.g. Acme Creative" />
           </Field>
-          <Field label="Agency type">
+          <Field label="What type of agency are you?">
             <ChipGroup options={AGENCY_TYPES} selected={p.agencyType} multi={false}
               onToggle={(v) => set('agencyType', p.agencyType === v ? '' : v)} />
+          </Field>
+          <Field label="What is your primary capability?">
+            <ChipGroup options={PRIMARY_CAPABILITIES} selected={p.primaryCapability} multi={false}
+              onToggle={(v) => set('primaryCapability', p.primaryCapability === v ? '' : v)} />
+          </Field>
+          <Field label="Where are you based in California?">
+            <ChipGroup options={CA_PRESENCE_OPTIONS} selected={p.caPresence} multi={false}
+              onToggle={(v) => set('caPresence', p.caPresence === v ? '' : v)} />
           </Field>
           <Field label="Primary business location" hint="City, State">
             <input className="form-input" value={p.location} onChange={(e) => set('location', e.target.value)} placeholder="e.g. Los Angeles, CA" />
@@ -324,6 +344,10 @@ export default function SettingsPage() {
             <ChipGroup options={TEAM_SIZES} selected={p.teamSize} multi={false}
               onToggle={(v) => set('teamSize', p.teamSize === v ? '' : v)} />
           </Field>
+          <Field label="Annual revenue (approx.)">
+            <ChipGroup options={ANNUAL_REVENUE_RANGES} selected={p.annualRevenue} multi={false}
+              onToggle={(v) => set('annualRevenue', p.annualRevenue === v ? '' : v)} />
+          </Field>
           <Field label="Delivery capacity">
             <ChipGroup options={DELIVERY_CAPACITY} selected={p.deliveryCapacity} multi={false}
               onToggle={(v) => set('deliveryCapacity', p.deliveryCapacity === v ? '' : v)} />
@@ -357,7 +381,7 @@ export default function SettingsPage() {
           <Field label="Insurance coverage">
             <ChipGroup options={INSURANCE} selected={p.insurance} onToggle={(v) => toggleArr('insurance', v)} />
           </Field>
-          <Field label="Prior government / public-sector experience">
+          <Field label="Have you done government work before?">
             <ChipGroup options={PRIOR_GOV_EXPERIENCE} selected={p.priorGovExperience} multi={false}
               onToggle={(v) => set('priorGovExperience', p.priorGovExperience === v ? '' : v)} />
           </Field>
@@ -391,6 +415,54 @@ export default function SettingsPage() {
           </button>
         </div>
       </form>
+
+      {/* Reset & Rebuild Section */}
+      <div className="glass-panel" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', border: '1px solid rgba(239,68,68,0.2)' }}>
+        <div>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.15rem', color: '#b91c1c' }}>Rebuild business profile</h2>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
+            Start over with the core profile questions. This will clear your current answers and run you through the initial setup again. Your saved opportunities and custom search keywords will not be affected.
+          </p>
+        </div>
+        <div>
+          <button type="button" onClick={() => setShowResetModal(true)} style={{
+            background: 'transparent', border: '1px solid #b91c1c', color: '#b91c1c',
+            padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.88rem', fontWeight: 500, cursor: 'pointer'
+          }}>
+            Restart setup
+          </button>
+        </div>
+      </div>
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', padding: '1rem'
+        }}>
+          <div className="glass-panel" style={{ background: 'var(--bg-primary)', maxWidth: 450, width: '100%', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Rebuild your profile?</h3>
+            <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+              This will clear your agency details (size, revenue, capabilities) and launch the onboarding flow. 
+              Your keywords and saved opportunities will be preserved. Are you sure?
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button type="button" onClick={() => setShowResetModal(false)} style={{
+                background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)',
+                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', cursor: 'pointer'
+              }}>
+                Cancel
+              </button>
+              <button type="button" onClick={() => router.push(`/${locale}/dashboard/settings/re-onboard`)} style={{
+                background: '#dc2626', border: 'none', color: '#fff',
+                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer'
+              }}>
+                Yes, rebuild
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

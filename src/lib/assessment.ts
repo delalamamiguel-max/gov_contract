@@ -23,6 +23,49 @@ const STANDARD_READINESS = [
   'W-9', 'Insurance certificates', 'Rate card', 'Proposal template',
 ];
 
+// ---------------------------------------------------------------------------
+// Keyword expansion maps — translate user-facing profile values into terms
+// commonly found in government contract solicitations.
+// ---------------------------------------------------------------------------
+
+export const CAPABILITY_KEYWORDS: Record<string, string[]> = {
+  'Digital marketing': ['digital', 'marketing', 'seo', 'social media', 'ppc', 'analytics', 'email marketing', 'digital strategy'],
+  'Branding & design': ['branding', 'brand', 'graphic design', 'visual identity', 'logo', 'creative', 'design'],
+  'Public relations': ['public relations', 'communications', 'pr', 'media relations', 'outreach', 'crisis communications'],
+  'Website / web app development': ['website', 'web development', 'web design', 'web application', 'ux', 'ui', 'front-end'],
+  'Video production': ['video', 'video production', 'multimedia', 'motion graphics', 'filming', 'editing'],
+  'Print / OOH advertising': ['print', 'out-of-home', 'ooh', 'billboard', 'signage', 'collateral', 'advertising'],
+  'Media buying': ['media buy', 'media planning', 'media placement', 'advertising', 'ad buy', 'media'],
+  'Market research': ['market research', 'survey', 'focus group', 'analysis', 'data', 'research', 'evaluation'],
+  'Translation / multilingual': ['translation', 'localization', 'multilingual', 'bilingual', 'interpreter', 'multicultural'],
+  'Full-service': ['marketing', 'communications', 'creative', 'advertising', 'campaign', 'digital', 'branding'],
+};
+
+export const AGENCY_TYPE_KEYWORDS: Record<string, string[]> = {
+  'Creative agency': ['creative', 'design', 'branding', 'visual', 'graphic', 'campaign'],
+  'Digital marketing agency': ['digital', 'marketing', 'seo', 'social media', 'ppc', 'analytics'],
+  'Media buying agency': ['media buy', 'media planning', 'ad buy', 'media placement', 'advertising'],
+  'Branding agency': ['branding', 'brand', 'identity', 'logo', 'visual identity'],
+  'PR / communications agency': ['public relations', 'communications', 'pr', 'outreach', 'media relations'],
+  'Web / design agency': ['website', 'web design', 'web development', 'ux', 'ui', 'front-end'],
+  'Content agency': ['content', 'copywriting', 'editorial', 'blog', 'content marketing'],
+  'Full-service agency': ['marketing', 'communications', 'creative', 'advertising', 'digital', 'branding'],
+  'Other': [],
+};
+
+export const OPP_TYPE_KEYWORDS: Record<string, string[]> = {
+  'One-time campaign': ['campaign', 'one-time', 'project-based', 'launch'],
+  'Retainer': ['retainer', 'ongoing', 'annual', 'indefinite', 'continuing'],
+  'Website / project-based work': ['website', 'web', 'redesign', 'development', 'project'],
+  'Media buying': ['media buy', 'media planning', 'ad buy', 'placement'],
+  'Creative production': ['creative', 'production', 'design', 'collateral', 'visual'],
+  'Research / strategy': ['research', 'strategy', 'analysis', 'evaluation', 'planning'],
+  'Communications / PR': ['communications', 'public relations', 'outreach', 'pr'],
+  'Branding project': ['branding', 'brand', 'identity', 'logo', 'rebrand'],
+  'Ongoing marketing support': ['marketing support', 'ongoing', 'management', 'maintenance'],
+  'Translation / localization support': ['translation', 'localization', 'multilingual', 'bilingual'],
+};
+
 export type MatchLabel = 'Strong Match' | 'Good Match' | 'Possible Match' | 'Weak Match';
 
 export interface GroupScore {
@@ -263,6 +306,52 @@ export function computeAssessment(
 
   // Remote/local alignment
   fChecks.push(locationServiceable ? 100 : 30);
+
+  // Primary capability (user's core business purpose)
+  if (profile.primaryCapability) {
+    const capKws = CAPABILITY_KEYWORDS[profile.primaryCapability];
+    if (capKws && capKws.length) {
+      const capHit = capKws.some((kw) => hay.includes(kw));
+      if (capHit) {
+        fChecks.push(100);
+        fMatched.push(`Aligns with your primary capability (${profile.primaryCapability})`);
+      } else {
+        fChecks.push(25);
+        fGaps.push(`Doesn't align with your primary capability (${profile.primaryCapability})`);
+      }
+    }
+  }
+
+  // Agency type alignment
+  if (profile.agencyType && profile.agencyType !== 'Other') {
+    const typeKws = AGENCY_TYPE_KEYWORDS[profile.agencyType];
+    if (typeKws && typeKws.length) {
+      const typeHit = typeKws.some((kw) => hay.includes(kw));
+      if (typeHit) {
+        fChecks.push(100);
+        fMatched.push(`Fits your agency type (${profile.agencyType})`);
+      } else {
+        fChecks.push(40);
+        fGaps.push(`May not align with your agency type (${profile.agencyType})`);
+      }
+    }
+  }
+
+  // Target opportunity type
+  const targetTypes = profile.targetOpportunityTypes || [];
+  if (targetTypes.length) {
+    const allTypeKws = targetTypes.flatMap((t) => OPP_TYPE_KEYWORDS[t] || []);
+    if (allTypeKws.length) {
+      const typeHit = allTypeKws.some((kw) => hay.includes(kw));
+      if (typeHit) {
+        fChecks.push(100);
+        fMatched.push('Matches your target opportunity type');
+      } else {
+        fChecks.push(35);
+        fGaps.push('Doesn\u2019t match any of your target opportunity types');
+      }
+    }
+  }
 
   const fitScore = Math.round(fChecks.reduce((a, b) => a + b, 0) / fChecks.length);
 
