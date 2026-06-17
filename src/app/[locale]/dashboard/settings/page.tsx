@@ -438,24 +438,24 @@ export default function SettingsPage() {
       {showResetModal && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', padding: '1rem'
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', padding: '1rem'
         }}>
-          <div className="glass-panel" style={{ background: 'var(--bg-primary)', maxWidth: 450, width: '100%', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Rebuild your profile?</h3>
-            <p style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+          <div style={{ background: '#ffffff', borderRadius: 16, maxWidth: 450, width: '100%', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
+            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0, color: '#111827' }}>Rebuild your profile?</h3>
+            <p style={{ fontSize: '0.95rem', color: '#4b5563', margin: 0, lineHeight: 1.5 }}>
               This will clear your agency details (size, revenue, capabilities) and launch the onboarding flow. 
               Your keywords and saved opportunities will be preserved. Are you sure?
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
               <button type="button" onClick={() => setShowResetModal(false)} style={{
-                background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)',
-                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', cursor: 'pointer'
+                background: 'transparent', border: '1px solid #d1d5db', color: '#374151',
+                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', cursor: 'pointer', fontWeight: 500
               }}>
                 Cancel
               </button>
               <button type="button" onClick={() => router.push(`/${locale}/dashboard/settings/re-onboard`)} style={{
                 background: '#dc2626', border: 'none', color: '#fff',
-                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', fontWeight: 500, cursor: 'pointer'
+                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer'
               }}>
                 Yes, rebuild
               </button>
