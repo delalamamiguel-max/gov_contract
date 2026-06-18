@@ -103,23 +103,17 @@ export async function GET(
   const agency = await getAgencyForEvent(id);
   const bu = agency ? BU_CODES[agency.toLowerCase()] : null;
 
-  const candidates: string[] = [];
   if (bu) {
-    // If we have a BU code, this is the only reliable way to deep-link 
+    // If we have a BU code, this is the reliable way to deep-link 
     // without triggering a PeopleSoft session error.
-    candidates.push(`https://caleprocure.ca.gov/event/${bu}/${encodeURIComponent(id)}`);
+    // We redirect immediately because probe() often times out or gets blocked by WAF.
+    return NextResponse.redirect(`https://caleprocure.ca.gov/event/${bu}/${encodeURIComponent(id)}`, 302);
   }
 
   // 2. We no longer include /event/preview/ or /event-details.aspx here because
   // while probe() succeeds (200 OK), those links crash in a real browser 
   // without a pre-existing PeopleSoft session cookie.
 
-  for (const url of candidates) {
-    if (await probe(url)) {
-      return NextResponse.redirect(url, 302);
-    }
-  }
-  
   // 3. Fallback to the search page with the query pre-filled.
   return NextResponse.redirect(SEARCH_FALLBACK(id), 302);
 }
