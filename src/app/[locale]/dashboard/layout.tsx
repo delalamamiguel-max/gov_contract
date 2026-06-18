@@ -1,7 +1,7 @@
 import BidFlareLogo from '@/components/BidFlareLogo';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { redirect } from 'next/navigation';
-import { readProfile, isOnboarded } from '@/lib/profile';
+import { readProfile } from '@/lib/profile';
 import { getCurrentUser } from '@/lib/supabase/server';
 
 export default async function DashboardLayout({
@@ -21,9 +21,8 @@ export default async function DashboardLayout({
 
   // First-time gate: send new users through onboarding before the dashboard.
   const profile = await readProfile();
-  if (!isOnboarded(profile)) {
-    redirect(`/${locale}/onboarding/complete`);
-  }
+  // Redirect removed to prevent routing loops on profile resets.
+  // Individual dashboard pages handle their own empty states.
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', width: '100%' }}>

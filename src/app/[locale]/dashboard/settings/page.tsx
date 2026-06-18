@@ -514,46 +514,45 @@ export default function SettingsPage() {
           </p>
         </div>
         <div>
-          <button type="button" onClick={() => setShowResetModal(true)} style={{
-            background: 'transparent', border: '1px solid #b91c1c', color: '#b91c1c',
-            padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.88rem', fontWeight: 500, cursor: 'pointer'
-          }}>
-            Restart setup
-          </button>
+          {!showResetModal ? (
+            <button type="button" onClick={() => setShowResetModal(true)} style={{
+              background: 'transparent', border: '1px solid #b91c1c', color: '#b91c1c',
+              padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.88rem', fontWeight: 500, cursor: 'pointer'
+            }}>
+              Restart setup
+            </button>
+          ) : (
+            <div style={{
+              background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.2)', 
+              borderRadius: 8, padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem',
+              marginTop: '0.5rem'
+            }}>
+              <div>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 600, margin: '0 0 0.25rem 0', color: '#b91c1c' }}>Restart business profile?</h3>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                  This clears your current business profile and removes personalized recommendations until you rebuild it. Your account, login, saved contracts, and billing information will not be deleted.
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                <button type="button" onClick={() => setShowResetModal(false)} disabled={resetting} style={{
+                  background: 'transparent', border: '1px solid #d1d5db', color: '#374151',
+                  padding: '0.5rem 1rem', borderRadius: 6, fontSize: '0.85rem', cursor: 'pointer', fontWeight: 500,
+                  opacity: resetting ? 0.5 : 1
+                }}>
+                  Cancel
+                </button>
+                <button type="button" onClick={handleReset} disabled={resetting} style={{
+                  background: '#dc2626', border: 'none', color: '#fff',
+                  padding: '0.5rem 1rem', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: resetting ? 0.7 : 1
+                }}>
+                  {resetting ? <><Loader2 size={14} className="spin" /> Rebuilding...</> : 'Restart and rebuild profile'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Reset Confirmation Modal */}
-      {showResetModal && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', padding: '1rem'
-        }}>
-          <div style={{ background: '#ffffff', borderRadius: 16, maxWidth: 450, width: '100%', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: 700, margin: 0, color: '#111827' }}>Rebuild your profile?</h3>
-            <p style={{ fontSize: '0.95rem', color: '#4b5563', margin: 0, lineHeight: 1.5 }}>
-              This will clear your agency details (size, revenue, capabilities) and launch the onboarding flow. 
-              Your keywords and saved opportunities will be preserved. Are you sure?
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-              <button type="button" onClick={() => setShowResetModal(false)} disabled={resetting} style={{
-                background: 'transparent', border: '1px solid #d1d5db', color: '#374151',
-                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', cursor: 'pointer', fontWeight: 500,
-                opacity: resetting ? 0.5 : 1
-              }}>
-                Cancel
-              </button>
-              <button type="button" onClick={handleReset} disabled={resetting} style={{
-                background: '#dc2626', border: 'none', color: '#fff',
-                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: resetting ? 0.7 : 1
-              }}>
-                {resetting ? <><Loader2 size={16} className="spin" /> Rebuilding...</> : 'Yes, rebuild'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
