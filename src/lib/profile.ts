@@ -57,6 +57,12 @@ export interface AgencyProfile {
   // Legacy / federal fields (kept for backward compatibility)
   naicsCodes?: string[];
   setAsideTypes?: string[];
+  // Match Scoring Override
+  scoringPreferences?: {
+    eligibilityWeight: number;
+    fitWeight: number;
+    edgeWeight: number;
+  };
   // Bookkeeping
   onboardingCompletedAt?: string | null;
   /** Watermark: opportunities ingested after this are "new since last visit". */
@@ -129,6 +135,17 @@ export function normalizeProfile(input: unknown): AgencyProfile {
   };
   const str = (v: unknown): string | null => (typeof v === 'string' && v.trim() ? v.trim() : null);
 
+  let scoringPreferences: AgencyProfile['scoringPreferences'] = undefined;
+  if (b.scoringPreferences && typeof b.scoringPreferences === 'object') {
+    const sp = b.scoringPreferences as Record<string, unknown>;
+    const ew = num(sp.eligibilityWeight);
+    const fw = num(sp.fitWeight);
+    const edw = num(sp.edgeWeight);
+    if (ew !== null && fw !== null && edw !== null) {
+      scoringPreferences = { eligibilityWeight: ew, fitWeight: fw, edgeWeight: edw };
+    }
+  }
+
   return {
     agencyName: str(b.agencyName),
     location: str(b.location),
@@ -166,6 +183,7 @@ export function normalizeProfile(input: unknown): AgencyProfile {
     caPresence: str(b.caPresence),
     naicsCodes: arr(b.naicsCodes),
     setAsideTypes: arr(b.setAsideTypes),
+    scoringPreferences,
     onboardingCompletedAt: str(b.onboardingCompletedAt),
     lastFeedSeenAt: str(b.lastFeedSeenAt),
   };

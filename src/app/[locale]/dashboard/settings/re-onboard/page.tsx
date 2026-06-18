@@ -32,16 +32,11 @@ export default function ReOnboardPage() {
       const data = await res.json();
       let profile = data?.profile || {};
 
-      // 2. Clear onboarding-related fields
-      for (const field of RESET_PROFILE_FIELDS) {
-        delete profile[field];
-      }
-
-      // 3. Merge new answers
+      // 2. Merge new answers
       const newProfileData = answersToProfile(finalAnswers);
       profile = { ...profile, ...newProfileData };
 
-      // 4. Save updated profile
+      // 3. Save updated profile
       const saveRes = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

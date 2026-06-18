@@ -403,7 +403,13 @@ export function computeAssessment(
   }
 
   // ---------------- WEIGHTED TOTAL + GATING ----------------
-  let matchScore = Math.round(eligibilityScore * 0.4 + fitScore * 0.35 + edgeScore * 0.25);
+  const prefs = profile.scoringPreferences ?? { eligibilityWeight: 40, fitWeight: 35, edgeWeight: 25 };
+  const totalWeight = (prefs.eligibilityWeight + prefs.fitWeight + prefs.edgeWeight) || 100;
+  const wE = prefs.eligibilityWeight / totalWeight;
+  const wF = prefs.fitWeight / totalWeight;
+  const wEd = prefs.edgeWeight / totalWeight;
+
+  let matchScore = Math.round(eligibilityScore * wE + fitScore * wF + edgeScore * wEd);
   // Feedback learning: nudge by the user's observed size preference.
   if (signals?.sizeBias && signals.sizeBias !== 'neutral' && opp.estimatedValue) {
     const big = opp.estimatedValue >= 500_000;

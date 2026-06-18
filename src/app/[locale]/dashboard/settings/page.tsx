@@ -42,6 +42,11 @@ interface ProfileState {
   annualRevenue: string;
   primaryCapability: string;
   caPresence: string;
+  scoringPreferences?: {
+    eligibilityWeight: number;
+    fitWeight: number;
+    edgeWeight: number;
+  };
 }
 
 const EMPTY: ProfileState = {
@@ -191,6 +196,7 @@ function fromServer(p: any): ProfileState {
     annualRevenue: s(p?.annualRevenue),
     primaryCapability: s(p?.primaryCapability),
     caPresence: s(p?.caPresence),
+    scoringPreferences: p?.scoringPreferences,
   };
 }
 
@@ -203,6 +209,7 @@ export default function SettingsPage() {
   const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Load existing profile so the form reflects what the user answered at signup.
   useEffect(() => {
@@ -248,6 +255,18 @@ export default function SettingsPage() {
       setErrorMsg(err instanceof Error ? err.message : 'Could not save your profile.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleReset = async () => {
+    setResetting(true);
+    try {
+      await fetch('/api/profile/reset', { method: 'POST' });
+      router.refresh();
+      router.push(`/${locale}/dashboard/settings/re-onboard`);
+    } catch (err) {
+      console.error(err);
+      setResetting(false);
     }
   };
 
@@ -416,6 +435,76 @@ export default function SettingsPage() {
         </div>
       </form>
 
+      {/* Advanced Match Preferences */}
+      <div className="glass-panel" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.25rem', border: '1px solid var(--border)' }}>
+        <div>
+          <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Advanced Match Preferences</h2>
+          <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
+            Customize the scoring weights used to rank your "For You" recommendations. 
+            The system evaluates Eligibility (hard requirements like certs/location), Fit (contract size/industry alignment), and Edge (your unique differentiators and keywords).
+          </p>
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem', background: 'var(--bg-inset)', padding: '1.25rem', borderRadius: '8px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>Eligibility Weight</label>
+            <input 
+              type="number" 
+              className="form-input" 
+              value={p.scoringPreferences?.eligibilityWeight ?? 40} 
+              onChange={(e) => set('scoringPreferences', { ...(p.scoringPreferences || { eligibilityWeight: 40, fitWeight: 35, edgeWeight: 25 }), eligibilityWeight: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>Fit Weight</label>
+            <input 
+              type="number" 
+              className="form-input" 
+              value={p.scoringPreferences?.fitWeight ?? 35} 
+              onChange={(e) => set('scoringPreferences', { ...(p.scoringPreferences || { eligibilityWeight: 40, fitWeight: 35, edgeWeight: 25 }), fitWeight: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>Edge Weight</label>
+            <input 
+              type="number" 
+              className="form-input" 
+              value={p.scoringPreferences?.edgeWeight ?? 25} 
+              onChange={(e) => set('scoringPreferences', { ...(p.scoringPreferences || { eligibilityWeight: 40, fitWeight: 35, edgeWeight: 25 }), edgeWeight: parseInt(e.target.value) || 0 })}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            Total weight: {((p.scoringPreferences?.eligibilityWeight ?? 40) + (p.scoringPreferences?.fitWeight ?? 35) + (p.scoringPreferences?.edgeWeight ?? 25))} (Normalized automatically to 100%)
+          </span>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button 
+              type="button" 
+              onClick={() => {
+                set('scoringPreferences', { eligibilityWeight: 40, fitWeight: 35, edgeWeight: 25 });
+                setTimeout(() => document.getElementById('settings-form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true })), 10);
+              }}
+              style={{
+                background: 'transparent', border: '1px solid #d1d5db', color: '#374151',
+                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.88rem', fontWeight: 500, cursor: 'pointer'
+              }}
+            >
+              Reset to Recommended Scoring
+            </button>
+            <button 
+              type="button" 
+              onClick={() => document.getElementById('settings-form')?.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))}
+              className="btn btn-primary"
+              style={{ padding: '0.6rem 1.25rem' }}
+            >
+              Save Preferences
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Reset & Rebuild Section */}
       <div className="glass-panel" style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem', border: '1px solid rgba(239,68,68,0.2)' }}>
         <div>
@@ -447,17 +536,19 @@ export default function SettingsPage() {
               Your keywords and saved opportunities will be preserved. Are you sure?
             </p>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
-              <button type="button" onClick={() => setShowResetModal(false)} style={{
+              <button type="button" onClick={() => setShowResetModal(false)} disabled={resetting} style={{
                 background: 'transparent', border: '1px solid #d1d5db', color: '#374151',
-                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', cursor: 'pointer', fontWeight: 500
+                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', cursor: 'pointer', fontWeight: 500,
+                opacity: resetting ? 0.5 : 1
               }}>
                 Cancel
               </button>
-              <button type="button" onClick={() => router.push(`/${locale}/dashboard/settings/re-onboard`)} style={{
+              <button type="button" onClick={handleReset} disabled={resetting} style={{
                 background: '#dc2626', border: 'none', color: '#fff',
-                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer'
+                padding: '0.6rem 1.25rem', borderRadius: 8, fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: resetting ? 0.7 : 1
               }}>
-                Yes, rebuild
+                {resetting ? <><Loader2 size={16} className="spin" /> Rebuilding...</> : 'Yes, rebuild'}
               </button>
             </div>
           </div>

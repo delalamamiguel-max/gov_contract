@@ -1,4 +1,5 @@
 export const dynamic = 'force-dynamic';
+import { getLocale } from 'next-intl/server';
 import { readProfile, hasProfile } from '@/lib/profile';
 import { readFeedbackSignals } from '@/lib/feedback';
 import { getRecommendations, type RecommendationItem } from '@/lib/recommendations';
@@ -45,9 +46,33 @@ function OtherItemBlock({ item, radius }: { item: RecommendationItem; radius: nu
 export default async function RecommendationsPage() {
   const profile = await readProfile();
   const profileReady = hasProfile(profile);
+  const locale = await getLocale();
+
+  if (!profileReady) {
+    return (
+      <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <header>
+          <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Recommended for you</h1>
+          <p>Based on your agency profile, here are the opportunities that fit best right now.</p>
+        </header>
+        <div className="glass-panel" style={{ textAlign: 'center', padding: '4rem 2rem', color: 'var(--text-secondary)' }}>
+          <h2 style={{ fontSize: '1.25rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
+            Rebuild your business profile to get personalized contract recommendations.
+          </h2>
+          <a
+            href={`/${locale}/dashboard/settings/re-onboard`}
+            className="btn btn-primary"
+            style={{ display: 'inline-block', marginTop: '1.5rem', textDecoration: 'none', padding: '0.75rem 1.5rem' }}
+          >
+            Rebuild My Business Profile
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   const signals = await readFeedbackSignals();
   const radius = profile.serviceRadiusMiles ?? 50;
-
   const rec = await getRecommendations(profile, { radius, signals });
   const totalInDb = await countOpportunities();
 
@@ -63,13 +88,6 @@ export default async function RecommendationsPage() {
             : 'Newly available best-fit opportunities first, then the rest of your matches.'}
         </p>
       </header>
-
-      {!profileReady && (
-        <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: '8px', padding: '0.75rem 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-          Finish your agency profile to sharpen these recommendations.{' '}
-          <a href="/en/dashboard/settings" style={{ color: 'var(--accent-primary)' }}>Complete profile →</a>
-        </div>
-      )}
 
       {/* DB unavailable */}
       {rec.unavailable ? (
