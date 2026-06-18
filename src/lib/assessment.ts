@@ -41,6 +41,44 @@ export const CAPABILITY_KEYWORDS: Record<string, string[]> = {
   'Full-service': ['marketing', 'communications', 'creative', 'advertising', 'campaign', 'digital', 'branding'],
 };
 
+export const SERVICE_KEYWORDS: Record<string, string[]> = {
+  'Brand strategy': ['brand strategy', 'branding', 'brand', 'identity', 'positioning'],
+  'Graphic design': ['graphic design', 'design', 'visual', 'layout', 'illustration', 'graphics'],
+  'Website design / development': ['website', 'web design', 'web development', 'web', 'front-end', 'frontend', 'ui', 'ux'],
+  'UX / UI design': ['ux', 'ui', 'user experience', 'user interface', 'usability', 'interaction design'],
+  'SEO': ['seo', 'search engine optimization', 'organic search', 'search rankings', 'search visibility'],
+  'Paid search': ['paid search', 'ppc', 'pay-per-click', 'google ads', 'sem', 'search advertising'],
+  'Paid social': ['paid social', 'social advertising', 'social ads', 'facebook ads', 'instagram ads', 'social media advertising'],
+  'Organic social media': ['social media', 'organic social', 'social media management', 'community management'],
+  'Content marketing': ['content marketing', 'content strategy', 'content creation', 'content', 'editorial'],
+  'Copywriting': ['copywriting', 'copywriter', 'copy', 'writing', 'editorial'],
+  'Email marketing': ['email marketing', 'email', 'newsletter', 'email campaign', 'drip campaign'],
+  'Video production': ['video', 'video production', 'filming', 'multimedia', 'motion graphics', 'animation'],
+  'Photography': ['photography', 'photo', 'photographer', 'photoshoot', 'imagery'],
+  'Public relations': ['public relations', 'pr', 'media relations', 'press', 'communications', 'outreach'],
+  'Crisis communications': ['crisis communications', 'crisis management', 'crisis', 'emergency communications'],
+  'Media planning / buying': ['media planning', 'media buying', 'media buy', 'ad buy', 'media placement', 'advertising'],
+  'Event marketing': ['event', 'event marketing', 'conference', 'trade show', 'experiential'],
+  'Market research': ['market research', 'research', 'survey', 'focus group', 'analysis', 'data analysis'],
+  'Multicultural marketing': ['multicultural', 'diversity', 'inclusive', 'cultural', 'bilingual'],
+  'Translation / localization': ['translation', 'localization', 'multilingual', 'bilingual', 'interpreter', 'language'],
+  'Analytics / reporting': ['analytics', 'reporting', 'data', 'metrics', 'insights', 'measurement', 'dashboard'],
+};
+
+export const INDUSTRY_KEYWORDS: Record<string, string[]> = {
+  'Government / public sector': ['government', 'public sector', 'municipal', 'state', 'federal', 'civic', 'public agency'],
+  'Education': ['education', 'school', 'university', 'college', 'academic', 'student', 'k-12', 'higher education'],
+  'Healthcare': ['healthcare', 'health', 'medical', 'clinical', 'hospital', 'public health', 'wellness'],
+  'Nonprofit': ['nonprofit', 'non-profit', 'ngo', 'foundation', 'charity', 'mission-driven'],
+  'Economic development': ['economic development', 'workforce', 'community development', 'economic', 'job training'],
+  'Tourism / hospitality': ['tourism', 'hospitality', 'travel', 'destination', 'visitor', 'hotel'],
+  'Real estate': ['real estate', 'property', 'housing', 'development', 'construction'],
+  'Retail / ecommerce': ['retail', 'ecommerce', 'e-commerce', 'shopping', 'consumer', 'store'],
+  'Financial services': ['financial', 'finance', 'banking', 'insurance', 'fintech', 'investment'],
+  'Technology': ['technology', 'tech', 'software', 'saas', 'digital', 'it', 'innovation'],
+  'Professional services': ['professional services', 'consulting', 'advisory', 'management'],
+};
+
 export const AGENCY_TYPE_KEYWORDS: Record<string, string[]> = {
   'Creative agency': ['creative', 'design', 'branding', 'visual', 'graphic', 'campaign'],
   'Digital marketing agency': ['digital', 'marketing', 'seo', 'social media', 'ppc', 'analytics'],
@@ -170,7 +208,16 @@ export function computeAssessment(
   const eChecks: number[] = [];
 
   // Service capability present at all
-  const serviceHits = services.filter((s) => s && hay.includes(s));
+  // Expanded service matching: check both the service name AND its keyword synonyms
+  const serviceHits = services.filter((s) => {
+    if (!s) return false;
+    // Direct match
+    if (hay.includes(s)) return true;
+    // Expanded keyword match
+    const expanded = SERVICE_KEYWORDS[s];
+    if (expanded) return expanded.some((kw) => hay.includes(kw));
+    return false;
+  });
   if (services.length === 0) {
     eChecks.push(50);
     eGaps.push('No services listed in your profile to qualify against');
@@ -287,7 +334,14 @@ export function computeAssessment(
   } else fChecks.push(50);
 
   // Industry experience
-  const indHit = industries.find((i) => i && hay.includes(i));
+  // Expanded industry matching
+  const indHit = industries.find((i) => {
+    if (!i) return false;
+    if (hay.includes(i)) return true;
+    const expanded = INDUSTRY_KEYWORDS[i];
+    if (expanded) return expanded.some((kw) => hay.includes(kw));
+    return false;
+  });
   if (indHit) { fChecks.push(100); fMatched.push(`Experience in a matching industry (${indHit})`); }
   else if (industries.length) { fChecks.push(50); fGaps.push('No clear match to your served industries'); }
   else fChecks.push(60);
@@ -350,6 +404,39 @@ export function computeAssessment(
         fChecks.push(35);
         fGaps.push('Doesn\u2019t match any of your target opportunity types');
       }
+    }
+  }
+
+  // Team size vs contract scale
+  if (profile.teamSize && opp.estimatedValue) {
+    const small = ['1-2', '3-5'].includes(profile.teamSize);
+    const largeContract = opp.estimatedValue >= 1_000_000;
+    if (small && largeContract) {
+      fChecks.push(30);
+      fGaps.push('Contract scale may exceed your current team capacity');
+    } else if (!small && largeContract) {
+      fChecks.push(85);
+    } else {
+      fChecks.push(80);
+    }
+  }
+
+  // Annual revenue vs contract value (scale appropriateness)
+  if ((profile as any).annualRevenue && opp.estimatedValue) {
+    const rev = (profile as any).annualRevenue as string;
+    const maxRev = rev.includes('Under') ? 250_000
+      : rev.includes('500K') ? 500_000
+      : rev.includes('$1M') && !rev.includes('$3M') ? 1_000_000
+      : rev.includes('$3M') ? 3_000_000
+      : 5_000_000;
+    if (opp.estimatedValue > maxRev * 10) {
+      fChecks.push(25);
+      fGaps.push('Contract value significantly exceeds your annual revenue scale');
+    } else if (opp.estimatedValue > maxRev * 3) {
+      fChecks.push(55);
+      fGaps.push('Contract may be large relative to your revenue');
+    } else {
+      fChecks.push(85);
     }
   }
 

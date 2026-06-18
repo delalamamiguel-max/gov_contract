@@ -10,7 +10,7 @@ import { labelFor, type OpportunityAssessment } from '@/lib/assessment';
 // The deterministic engine (assessment.ts) scores on keyword overlap and field
 // values. It cannot read intent, industry context, or implicit on-site/staffing
 // requirements from natural-language descriptions. This module asks Kimi for a
-// BOUNDED adjustment (-15..+15) to the deterministic score — never a re-score —
+// BOUNDED adjustment (-25..+25) to the deterministic score — never a re-score —
 // and caches the result in Supabase keyed by (source_id, profile_hash).
 //
 // Guarantees:
@@ -44,7 +44,7 @@ const client = new OpenAI({
 const TABLE = 'opportunity_ai_scores';
 
 export interface KimiAdjustment {
-  adjustment: number; // -15..+15
+  adjustment: number; // -25..+25
   reason: string;
   confidence: 'high' | 'medium' | 'low';
   source: 'kimi' | 'cache' | 'skipped';
@@ -84,7 +84,7 @@ export function buildProfileHash(profile: AgencyProfile): string {
 function clampAdj(n: unknown): number {
   const v = typeof n === 'number' ? n : Number(n);
   if (!Number.isFinite(v)) return 0;
-  return Math.max(-15, Math.min(15, Math.round(v)));
+  return Math.max(-25, Math.min(25, Math.round(v)));
 }
 
 function normConfidence(c: unknown): 'high' | 'medium' | 'low' {
@@ -159,6 +159,8 @@ AGENCY PROFILE:
 - Industries: ${(profile.industries || []).join(', ') || 'unspecified'}
 - Certifications: ${(profile.certifications || []).join(', ') || 'none'}
 - Location: ${profile.location || 'unspecified'} | radius ${profile.serviceRadiusMiles ?? 'n/a'} mi | preference ${profile.remotePreference || 'n/a'}
+- Team size: ${profile.teamSize || 'unspecified'}
+- Annual revenue: ${(profile as any).annualRevenue || 'unspecified'}
 
 OPPORTUNITY:
 - Title: ${o.title}
@@ -173,14 +175,16 @@ DETERMINISTIC BREAKDOWN (already computed):
 - Hard requirement missing: ${det.hardRequirementMissing ? 'YES (score is capped at 39)' : 'no'}
 
 RULES:
-- Output an integer adjustment from -15 to +15 to apply to the TOTAL.
+- Output an integer adjustment from -25 to +25 to apply to the TOTAL.
 - Return 0 if the deterministic score is already appropriate (this is the common case — do not invent adjustments).
 - Use NEGATIVE when the prose reveals a mismatch the keywords missed (wrong industry, implicit on-site requirement, staffing scale far beyond the agency, specialized non-marketing expertise required).
 - Use POSITIVE only when the prose reveals genuine fit the keywords under-counted.
 - If a hard requirement is missing, do NOT propose a positive adjustment.
+- Evaluate CONTEXTUAL FIT: read the description for industry alignment, scope complexity, staffing scale, and whether the work genuinely matches the agency's capabilities — do not just confirm keyword presence.
+- Consider team size and revenue when assessing scale appropriateness. A 1-2 person agency should not be matched to contracts requiring large dedicated teams.
 
 Return STRICT JSON ONLY, no markdown:
-{"adjustment": <int -15..15>, "reason": "<one concise sentence>", "confidence": "high|medium|low"}`;
+{"adjustment": <int -25..25>, "reason": "<one concise sentence>", "confidence": "high|medium|low"}`;
 }
 
 async function callKimi(

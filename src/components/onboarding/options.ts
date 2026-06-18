@@ -181,3 +181,11 @@ export const CA_PRESENCE_OPTIONS = [
   'Regional office in California',
   'No California presence yet',
 ];
+
+export const CONTRACT_SIZE_RANGES = [
+  'Under $25K',
+  '$25K – $100K',
+  '$100K – $500K',
+  '$500K – $1M',
+  '$1M+',
+];
