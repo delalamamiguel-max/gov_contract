@@ -37,7 +37,15 @@ async function probe(url: string, timeoutMs = 2500): Promise<boolean> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    const res = await fetch(url, { method: 'HEAD', redirect: 'manual', signal: ctrl.signal });
+    const res = await fetch(url, {
+      method: 'HEAD',
+      redirect: 'manual',
+      signal: ctrl.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      },
+    });
     return res.status >= 200 && res.status < 400;
   } catch {
     return false;
