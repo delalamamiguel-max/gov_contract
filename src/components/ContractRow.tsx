@@ -40,7 +40,7 @@ const sourceLinkLabel: Record<string, string> = {
   'sam.gov': 'View on SAM.gov',
   caleprocure: 'View on Cal eProcure',
   'dgs-ncb': 'View on CA DGS',
-  caltrans: 'View on Caltrans',
+  caltrans: 'View Dataset (data.ca.gov)',
 };
 
 const labelChip: Record<MatchLabel, { bg: string; fg: string }> = {

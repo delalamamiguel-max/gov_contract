@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -6,30 +7,61 @@ export const dynamic = 'force-dynamic';
 // ---------------------------------------------------------------------------
 // Cal eProcure event deep-link resolver.
 //
-// We do not control Cal eProcure's URL scheme and the Apify actor currently
-// only captures the generic search page. To still give users a meaningful
-// "View on Cal eProcure" link, this route does a quick head/get on a list of
-// known per-event URL patterns and 302s to the first one that responds. The
-// last entry is the public event-search page pre-seeded with the event id, so
-// the user is always at most one click from the event.
+// Cal eProcure's PeopleSoft portal throws an "Oops! The page failed to load"
+// error if you navigate directly to an event details page without a pre-existing
+// session token, EXCEPT if you use the direct Business Unit (BU) routing URL
+// (/event/{BU}/{eventId}).
 //
-// Designed to be cheap: HEAD/GET only, short timeout, no scraping.
+// Since our Apify scraper doesn't currently capture the BU, we try to map the
+// scraped agency string to a known BU code. If found, we route the user directly.
+// Otherwise, we safely fall back to the public search page pre-seeded with the
+// event ID (which correctly initializes the session without an error).
 // ---------------------------------------------------------------------------
 
 const SEARCH_FALLBACK = (id: string) =>
   `https://caleprocure.ca.gov/pages/Events-BS3/event-search.aspx?searchText=${encodeURIComponent(id)}`;
 
-/** Candidate per-event URL patterns to try, in priority order. */
-function candidateUrls(eventId: string): string[] {
-  const e = encodeURIComponent(eventId);
-  return [
-    // Public event preview routes used by Cal eProcure's bidder portal.
-    `https://caleprocure.ca.gov/event/preview/${e}`,
-    `https://caleprocure.ca.gov/event/${e}`,
-    `https://caleprocure.ca.gov/pages/Events-BS3/event-details.aspx?eventID=${e}`,
-    // Always-valid fallback: the public search page pre-seeded with the id.
-    SEARCH_FALLBACK(eventId),
-  ];
+// Map of known California State Department Business Unit (BU) codes
+const BU_CODES: Record<string, string> = {
+  'department of transportation': '2660',
+  'caltrans': '2660',
+  'dgs - statewide procurement': '7760',
+  'department of general services': '7760',
+  'dept of corrections & rehab': '5225',
+  'cal fire': '3540',
+  'dept of the ca highway patrol': '2720',
+  'department of water resources': '3860',
+  'department of motor vehicles': '2740',
+  'employment development dept': '7100',
+  'franchise tax board': '7730',
+  'dept of parks & recreation': '3790',
+  'state board of equalization': '0860',
+  'department of public health': '4265',
+  'state water resources control': '3940',
+  'department of technology': '7502',
+  'department of justice': '0820',
+  'department of fish & wildlife': '3600',
+  'department of social services': '5180',
+  'department of rehabilitation': '5160',
+  'department of state hospitals': '4440',
+  'department of consumer affairs': '1111',
+  'california highway patrol': '2720',
+};
+
+async function getAgencyForEvent(eventId: string): Promise<string | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase
+      .from('opportunities')
+      .select('agency')
+      .eq('source_id', eventId)
+      .limit(1)
+      .single();
+    return data?.agency || null;
+  } catch {
+    return null;
+  }
 }
 
 /** Probe a URL — return true if it answers 2xx/3xx (i.e. the page exists). */
@@ -67,13 +99,27 @@ export async function GET(
     );
   }
 
-  const candidates = candidateUrls(id);
-  // The last candidate (search fallback) is always considered valid, so skip
-  // probing it — we only need to find a real per-event URL among the others.
-  for (let i = 0; i < candidates.length - 1; i++) {
-    if (await probe(candidates[i])) {
-      return NextResponse.redirect(candidates[i], 302);
+  // 1. Check if we know the agency so we can map it to a BU code.
+  const agency = await getAgencyForEvent(id);
+  const bu = agency ? BU_CODES[agency.toLowerCase()] : null;
+
+  const candidates: string[] = [];
+  if (bu) {
+    // If we have a BU code, this is the only reliable way to deep-link 
+    // without triggering a PeopleSoft session error.
+    candidates.push(`https://caleprocure.ca.gov/event/${bu}/${encodeURIComponent(id)}`);
+  }
+
+  // 2. We no longer include /event/preview/ or /event-details.aspx here because
+  // while probe() succeeds (200 OK), those links crash in a real browser 
+  // without a pre-existing PeopleSoft session cookie.
+
+  for (const url of candidates) {
+    if (await probe(url)) {
+      return NextResponse.redirect(url, 302);
     }
   }
+  
+  // 3. Fallback to the search page with the query pre-filled.
   return NextResponse.redirect(SEARCH_FALLBACK(id), 302);
 }
