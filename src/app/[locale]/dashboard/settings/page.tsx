@@ -441,34 +441,48 @@ export default function SettingsPage() {
           <h2 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.25rem', color: 'var(--text-primary)' }}>Advanced Match Preferences</h2>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
             Customize the scoring weights used to rank your "For You" recommendations. 
-            The system evaluates Eligibility (hard requirements like certs/location), Fit (contract size/industry alignment), and Edge (your unique differentiators and keywords).
+            The system evaluates Qualifications & Compliance (hard requirements like certs/location), Contract Profile Fit (contract size/industry alignment), and Competitive Edge (your unique differentiators and keywords).
           </p>
         </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem', background: 'var(--bg-inset)', padding: '1.25rem', borderRadius: '8px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', background: 'var(--bg-inset)', padding: '1.5rem', borderRadius: '8px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>Eligibility Weight</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>Qualifications &amp; Compliance</label>
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{p.scoringPreferences?.eligibilityWeight ?? 40}</span>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>Hard requirements, certifications, and location.</p>
             <input 
-              type="number" 
-              className="form-input" 
+              type="range" min="0" max="100"
+              style={{ width: '100%', cursor: 'pointer' }}
               value={p.scoringPreferences?.eligibilityWeight ?? 40} 
               onChange={(e) => set('scoringPreferences', { ...(p.scoringPreferences || { eligibilityWeight: 40, fitWeight: 35, edgeWeight: 25 }), eligibilityWeight: parseInt(e.target.value) || 0 })}
             />
           </div>
+          
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>Fit Weight</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>Contract Profile Fit</label>
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{p.scoringPreferences?.fitWeight ?? 35}</span>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>Industry alignment, contract size, and service match.</p>
             <input 
-              type="number" 
-              className="form-input" 
+              type="range" min="0" max="100"
+              style={{ width: '100%', cursor: 'pointer' }}
               value={p.scoringPreferences?.fitWeight ?? 35} 
               onChange={(e) => set('scoringPreferences', { ...(p.scoringPreferences || { eligibilityWeight: 40, fitWeight: 35, edgeWeight: 25 }), fitWeight: parseInt(e.target.value) || 0 })}
             />
           </div>
+
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '0.4rem' }}>Edge Weight</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.2rem' }}>
+              <label style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-primary)' }}>Competitive Edge</label>
+              <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{p.scoringPreferences?.edgeWeight ?? 25}</span>
+            </div>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 0.75rem 0' }}>Differentiators, proposal readiness, and priority keywords.</p>
             <input 
-              type="number" 
-              className="form-input" 
+              type="range" min="0" max="100"
+              style={{ width: '100%', cursor: 'pointer' }}
               value={p.scoringPreferences?.edgeWeight ?? 25} 
               onChange={(e) => set('scoringPreferences', { ...(p.scoringPreferences || { eligibilityWeight: 40, fitWeight: 35, edgeWeight: 25 }), edgeWeight: parseInt(e.target.value) || 0 })}
             />

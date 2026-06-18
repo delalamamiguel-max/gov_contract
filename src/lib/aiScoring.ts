@@ -44,7 +44,7 @@ const client = new OpenAI({
 const TABLE = 'opportunity_ai_scores';
 
 export interface KimiAdjustment {
-  adjustment: number; // -25..+25
+  adjustment: number; // -50..+25
   reason: string;
   confidence: 'high' | 'medium' | 'low';
   source: 'kimi' | 'cache' | 'skipped';
@@ -84,7 +84,7 @@ export function buildProfileHash(profile: AgencyProfile): string {
 function clampAdj(n: unknown): number {
   const v = typeof n === 'number' ? n : Number(n);
   if (!Number.isFinite(v)) return 0;
-  return Math.max(-25, Math.min(25, Math.round(v)));
+  return Math.max(-50, Math.min(25, Math.round(v)));
 }
 
 function normConfidence(c: unknown): 'high' | 'medium' | 'low' {
@@ -152,7 +152,7 @@ async function writeCache(
 // --------------------------- model call ---------------------------
 
 function buildPrompt(o: OppForScoring, profile: AgencyProfile, det: OpportunityAssessment): string {
-  return `You review a deterministic match score for a MARKETING / COMMUNICATIONS agency deciding whether to pursue a public-sector contract. The keyword-based engine cannot read intent, industry context, implicit on-site requirements, or staffing scale from prose — your job is to catch what it missed and propose a SMALL bounded adjustment.
+  return `You review a deterministic match score for a MARKETING / COMMUNICATIONS agency deciding whether to pursue a public-sector contract. The keyword-based engine cannot read intent, industry context, implicit on-site requirements, or staffing scale from prose — your job is to catch what it missed and propose a bounded adjustment.
 
 AGENCY PROFILE:
 - Services: ${(profile.services || []).join(', ') || 'unspecified'}
@@ -175,16 +175,17 @@ DETERMINISTIC BREAKDOWN (already computed):
 - Hard requirement missing: ${det.hardRequirementMissing ? 'YES (score is capped at 39)' : 'no'}
 
 RULES:
-- Output an integer adjustment from -25 to +25 to apply to the TOTAL.
+- Output an integer adjustment from -50 to +25 to apply to the TOTAL.
 - Return 0 if the deterministic score is already appropriate (this is the common case — do not invent adjustments).
 - Use NEGATIVE when the prose reveals a mismatch the keywords missed (wrong industry, implicit on-site requirement, staffing scale far beyond the agency, specialized non-marketing expertise required).
+- Use a SEVERE NEGATIVE penalty (e.g. -40 to -50) if the opportunity is blatantly not marketing/communications work (e.g., equipment maintenance, physical security, construction) but was falsely matched due to generic keywords.
 - Use POSITIVE only when the prose reveals genuine fit the keywords under-counted.
 - If a hard requirement is missing, do NOT propose a positive adjustment.
 - Evaluate CONTEXTUAL FIT: read the description for industry alignment, scope complexity, staffing scale, and whether the work genuinely matches the agency's capabilities — do not just confirm keyword presence.
 - Consider team size and revenue when assessing scale appropriateness. A 1-2 person agency should not be matched to contracts requiring large dedicated teams.
 
 Return STRICT JSON ONLY, no markdown:
-{"adjustment": <int -25..25>, "reason": "<one concise sentence>", "confidence": "high|medium|low"}`;
+{"adjustment": <int -50..25>, "reason": "<one concise sentence>", "confidence": "high|medium|low"}`;
 }
 
 async function callKimi(

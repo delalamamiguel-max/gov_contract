@@ -10,7 +10,7 @@ import ProposalChecklist from '@/components/ProposalChecklist';
 import RfpAssessmentView from '@/components/RfpAssessmentView';
 import FeedbackQuestionnaire from '@/components/FeedbackQuestionnaire';
 
-type Tab = 'assessment' | 'readiness' | 'rfp';
+type Tab = 'assessment' | 'readiness' | 'rfp' | 'attachments';
 
 interface ContractRowProps {
   radius?: number;
@@ -32,6 +32,7 @@ interface ContractRowProps {
     sourceUrl?: string | null;
     assessment: OpportunityAssessment;
     checklist: Checklist;
+    raw?: any; // To access unmapped scraper payload like attachments
   };
 }
 
@@ -255,7 +256,7 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
         >
           {/* Tabs */}
           <div style={{ display: 'flex', gap: '0.5rem', borderBottom: '1px solid rgba(42, 51, 61,0.08)' }} onClick={(e) => e.stopPropagation()}>
-            {([['assessment', 'Assessment'], ['readiness', 'Proposal Readiness'], ['rfp', 'RFP Workflow']] as [Tab, string][]).map(([key, label]) => (
+            {([['assessment', 'Assessment'], ['readiness', 'Proposal Readiness'], ['rfp', 'RFP Workflow'], ['attachments', 'Attachments']] as [Tab, string][]).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => selectTab(key)}

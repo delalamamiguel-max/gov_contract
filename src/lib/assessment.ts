@@ -14,7 +14,7 @@ export const MARKETING_SCOPES = [
   'marketing', 'advertis', 'communication', 'public relations', 'branding', 'brand',
   'website', 'web development', 'web design', 'digital strategy', 'digital', 'seo',
   'social media', 'media buy', 'media planning', 'creative', 'outreach', 'campaign',
-  'translation', 'localization', 'market research', 'graphic design', 'video',
+  'translation', 'localization', 'market research', 'graphic design', 'video production', 'videography', 'multimedia',
   'content', 'copywrit', 'email marketing', 'photography', 'multicultural',
 ];
 
@@ -33,7 +33,7 @@ export const CAPABILITY_KEYWORDS: Record<string, string[]> = {
   'Branding & design': ['branding', 'brand', 'graphic design', 'visual identity', 'logo', 'creative', 'design'],
   'Public relations': ['public relations', 'communications', 'pr', 'media relations', 'outreach', 'crisis communications'],
   'Website / web app development': ['website', 'web development', 'web design', 'web application', 'ux', 'ui', 'front-end'],
-  'Video production': ['video', 'video production', 'multimedia', 'motion graphics', 'filming', 'editing'],
+  'Video production': ['video production', 'videography', 'multimedia', 'motion graphics', 'filming', 'editing'],
   'Print / OOH advertising': ['print', 'out-of-home', 'ooh', 'billboard', 'signage', 'collateral', 'advertising'],
   'Media buying': ['media buy', 'media planning', 'media placement', 'advertising', 'ad buy', 'media'],
   'Market research': ['market research', 'survey', 'focus group', 'analysis', 'data', 'research', 'evaluation'],
@@ -53,7 +53,7 @@ export const SERVICE_KEYWORDS: Record<string, string[]> = {
   'Content marketing': ['content marketing', 'content strategy', 'content creation', 'content', 'editorial'],
   'Copywriting': ['copywriting', 'copywriter', 'copy', 'writing', 'editorial'],
   'Email marketing': ['email marketing', 'email', 'newsletter', 'email campaign', 'drip campaign'],
-  'Video production': ['video', 'video production', 'filming', 'multimedia', 'motion graphics', 'animation'],
+  'Video production': ['video production', 'videography', 'filming', 'multimedia', 'motion graphics', 'animation'],
   'Photography': ['photography', 'photo', 'photographer', 'photoshoot', 'imagery'],
   'Public relations': ['public relations', 'pr', 'media relations', 'press', 'communications', 'outreach'],
   'Crisis communications': ['crisis communications', 'crisis management', 'crisis', 'emergency communications'],
