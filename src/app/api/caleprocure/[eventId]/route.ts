@@ -91,6 +91,11 @@ async function probe(url: string, timeoutMs = 2500): Promise<boolean> {
   }
 }
 
+/**
+ * LEGACY FALLBACK ROUTER
+ * As of the latest update, the Apify scraper captures the exact deep link directly.
+ * This route only exists to support old database entries that haven't been re-synced yet.
+ */
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ eventId: string }> }

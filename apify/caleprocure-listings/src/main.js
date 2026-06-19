@@ -79,66 +79,61 @@ try {
   
   for (const item of items) {
     let attachments = [];
+    let itemUrl = 'https://caleprocure.ca.gov/pages/Events-BS3/event-search.aspx';
     try {
       console.log(`Processing event: ${item.eventId} - ${item.name}`);
       
-      // We only want to scrape attachments if it matches the keyword or if no keyword is set,
-      // otherwise it's a huge waste of time.
-      let shouldScrapeAttachments = true;
-      if (keyword) {
-        const re = new RegExp(keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        if (!re.test(item.name)) shouldScrapeAttachments = false;
-      }
+      // Always scrape attachments and capture the deep link for every item
+      // Click the Event ID link to go to event details
+      await page.click(`a:has-text("${item.eventId}")`, { timeout: 15000 }).catch(() => {});
+      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+      await page.waitForTimeout(3000);
+      
+      // Capture the exact real deep link URL while on the details page
+      itemUrl = page.url();
 
-      if (shouldScrapeAttachments) {
-        // Click the Event ID link to go to event details
-        await page.click(`a:has-text("${item.eventId}")`, { timeout: 15000 }).catch(() => {});
+      // Click "View Event Package" to go to the attachments page
+      const pkgBtn = await page.$('input[value="View Event Package"]');
+      if (pkgBtn) {
+        await pkgBtn.click();
         await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await page.waitForTimeout(3000);
 
-        // Click "View Event Package" to go to the attachments page
-        const pkgBtn = await page.$('input[value="View Event Package"]');
-        if (pkgBtn) {
-          await pkgBtn.click();
-          await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-          await page.waitForTimeout(3000);
+        // Extract the attachments table
+        attachments = await page.evaluate(() => {
+          const table = document.querySelector('table[id^="RESP_INQ_ATT_VW$scroll"]');
+          if (!table) return [];
+          
+          const rows = Array.from(table.querySelectorAll('tr')).slice(1); // skip header
+          return rows.map(r => {
+            const cells = r.querySelectorAll('td');
+            if (cells.length < 3) return null;
+            const link = cells[1].querySelector('a');
+            return {
+              name: (link?.textContent || cells[1].textContent || '').trim(),
+              description: (cells[2].textContent || '').trim(),
+              url: link?.href || '',
+            };
+          }).filter(Boolean);
+        });
 
-          // Extract the attachments table
-          attachments = await page.evaluate(() => {
-            const table = document.querySelector('table[id^="RESP_INQ_ATT_VW$scroll"]');
-            if (!table) return [];
-            
-            const rows = Array.from(table.querySelectorAll('tr')).slice(1); // skip header
-            return rows.map(r => {
-              const cells = r.querySelectorAll('td');
-              if (cells.length < 3) return null;
-              const link = cells[1].querySelector('a');
-              return {
-                name: (link?.textContent || cells[1].textContent || '').trim(),
-                description: (cells[2].textContent || '').trim(),
-                url: link?.href || '',
-              };
-            }).filter(Boolean);
-          });
+        console.log(`Found ${attachments.length} attachments for ${item.eventId}`);
 
-          console.log(`Found ${attachments.length} attachments for ${item.eventId}`);
-
-          // Click "Return to Event Search" to go back to the details page
-          const returnBtn1 = await page.$('input[value="Return to Event Search"]');
-          if (returnBtn1) {
-            await returnBtn1.click();
-            await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
-            await page.waitForTimeout(3000);
-          }
-        }
-        
-        // Click "Return to Event Search" again to go back to the grid
-        const returnBtn2 = await page.$('input[value="Return to Event Search"]');
-        if (returnBtn2) {
-          await returnBtn2.click();
+        // Click "Return to Event Search" to go back to the details page
+        const returnBtn1 = await page.$('input[value="Return to Event Search"]');
+        if (returnBtn1) {
+          await returnBtn1.click();
           await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
           await page.waitForTimeout(3000);
         }
+      }
+      
+      // Click "Return to Event Search" again to go back to the grid
+      const returnBtn2 = await page.$('input[value="Return to Event Search"]');
+      if (returnBtn2) {
+        await returnBtn2.click();
+        await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+        await page.waitForTimeout(3000);
       }
     } catch (e) {
       console.warn(`Failed to process attachments for ${item.eventId}: ${e.message}`);
@@ -148,7 +143,7 @@ try {
       ...item,
       name: item.name.replace(/\s+/g, ' ').replace(/¿/g, '-').trim(),
       endDate: parseEnd(item.endRaw),
-      url: 'https://caleprocure.ca.gov/pages/Events-BS3/event-search.aspx',
+      url: itemUrl,
       attachments,
     });
     

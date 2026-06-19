@@ -50,13 +50,14 @@ const CALEPROCURE_SEARCH = 'https://caleprocure.ca.gov/pages/Events-BS3/event-se
  * links for already-stored rows without re-running the (paid) Apify actor.
  */
 export function caleprocureEventUrl(eventId: string, actorUrl?: string): string {
-  // Only trust the captured URL when it's clearly a per-event link, not
-  // the bare search page (which is what the actor currently emits).
-  if (actorUrl && /^https?:\/\//i.test(actorUrl) && /[?#]/.test(actorUrl)
-      && !actorUrl.replace(/[?#].*/, '').endsWith('event-search.aspx')) {
+  // If the actor captured a specific URL (which it now does for every event),
+  // trust it completely because it's the real deep link (e.g. /event/2660/04A7389).
+  // Ignore the generic search page URL that the scraper might accidentally push if it failed.
+  if (actorUrl && actorUrl.includes('/event/')) {
     return actorUrl;
   }
-  // Server-side resolver does the deep-linking; works for existing rows too.
+  
+  // Legacy fallback for old database rows that only have the generic search page URL
   return eventId
     ? `/api/caleprocure/${encodeURIComponent(eventId)}`
     : CALEPROCURE_SEARCH;
