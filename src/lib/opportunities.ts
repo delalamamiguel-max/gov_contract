@@ -25,8 +25,8 @@ const VISIBLE_STATUSES = ['active', 'planned'] as const;
 // NOTE: PostgREST `.or()` treats commas as filter separators — values MUST NOT
 // contain literal commas (e.g. `%, CA%` here would silently break the parser).
 // The `%california%` clause covers ~all CA SAM.gov rows already.
-const CA_OR_FILTER =
-  'source.in.(caleprocure,dgs-ncb,caltrans),place_of_performance.ilike.%california%';
+// We currently restrict all reads exclusively to the Cal eProcure source.
+const CA_OR_FILTER = 'source.in.(caleprocure)';
 
 /** The shape the UI/assessment layer expects (same as live SAM mapping). */
 export type OpportunityRecord = SamGovOpportunity & {

@@ -38,33 +38,19 @@ export async function GET(request: Request) {
   const results: Record<string, unknown> = {};
   let anyError = false;
 
-  // SAM.gov (throttled)
+  // SAM.gov (throttled) - TEMPORARILY DISABLED
   if (!source || source === 'sam') {
-    if (!force) {
-      const gate = await shouldRunSync(cfg.minIntervalHours);
-      if (!gate.ok) {
-        results.sam = { status: 'skipped', reason: gate.reason };
-      }
-    }
-    if (!results.sam) {
-      const sam = await syncOpportunities();
-      results.sam = sam;
-      if (sam.status === 'error') anyError = true;
-    }
+    results.sam = { status: 'skipped', reason: 'temporarily disabled' };
   }
 
-  // California DGS non-competitive bids (idempotent; runs each time)
+  // California DGS non-competitive bids - TEMPORARILY DISABLED
   if (!source || source === 'dgs') {
-    const dgs = await syncDgsNcb();
-    results.dgs = dgs;
-    if (dgs.status === 'error') anyError = true;
+    results.dgs = { status: 'skipped', reason: 'temporarily disabled' };
   }
 
-  // Caltrans project pipeline (idempotent; runs each time)
+  // Caltrans project pipeline - TEMPORARILY DISABLED
   if (!source || source === 'caltrans') {
-    const caltrans = await syncCaltrans();
-    results.caltrans = caltrans;
-    if (caltrans.status === 'error') anyError = true;
+    results.caltrans = { status: 'skipped', reason: 'temporarily disabled' };
   }
 
   // Cal eProcure open CA bids via Apify (paid). Auto-runs only when opted in;
