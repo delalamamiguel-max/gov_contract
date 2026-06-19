@@ -139,13 +139,15 @@ try {
       console.warn(`Failed to process attachments for ${item.eventId}: ${e.message}`);
     }
 
-    finalResults.push({
+    const finalResult = {
       ...item,
       name: item.name.replace(/\s+/g, ' ').replace(/¿/g, '-').trim(),
       endDate: parseEnd(item.endRaw),
       url: itemUrl,
       attachments,
-    });
+    };
+    finalResults.push(finalResult);
+    await Actor.pushData(finalResult);
     
     if (limit > 0 && finalResults.length >= limit) break;
   }
@@ -161,7 +163,6 @@ try {
   if (limit > 0) results = results.slice(0, limit);
 
   console.log(`Extracted ${results.length} distinct ${status === 'P' ? 'open' : ''} bids.`);
-  await Actor.pushData(results);
   await browser.close();
   await Actor.exit(`Done: ${results.length} bids.`);
 } catch (err) {
