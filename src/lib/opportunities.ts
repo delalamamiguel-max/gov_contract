@@ -228,6 +228,11 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
   // same non-keyword filters.
   const baseQuery = () => {
     let q = supabase.from(TABLE).select('*').in('status', VISIBLE_STATUSES as unknown as string[]).or(CA_OR_FILTER);
+    
+    // Do not return expired contracts (where deadline is already past).
+    const today = new Date().toISOString();
+    q = q.or(`response_deadline.gte.${today},response_deadline.is.null`);
+
     if (opts.naicsCode) q = q.eq('naics_code', opts.naicsCode);
     if (opts.setAsideType) q = q.ilike('set_aside_type', `%${opts.setAsideType}%`);
     if (opts.postedSince) q = q.gte('posted_date', opts.postedSince);

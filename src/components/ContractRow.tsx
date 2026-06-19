@@ -313,6 +313,26 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
                 </div>
               ) : null
             )}
+            {tab === 'attachments' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {opp.raw?.attachments && Array.isArray(opp.raw.attachments) && opp.raw.attachments.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {opp.raw.attachments.map((att: any, idx: number) => (
+                      <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'rgba(26,169,201,0.06)', padding: '0.75rem', borderRadius: 8, border: '1px solid rgba(26,169,201,0.2)' }}>
+                        <a href={att.url} target="_blank" rel="noopener noreferrer" style={{ fontWeight: 600, color: 'var(--accent-primary)', textDecoration: 'none', wordBreak: 'break-all' }}>
+                          {att.name || 'Attachment'}
+                        </a>
+                        {att.description && <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>- {att.description}</span>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', padding: '0.5rem 0' }}>
+                    No attachments were found for this opportunity. Note: they might take a few hours to sync.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Description */}

@@ -46,6 +46,11 @@ const BU_CODES: Record<string, string> = {
   'department of state hospitals': '4440',
   'department of consumer affairs': '1111',
   'california highway patrol': '2720',
+  'office of exposition park': '3100',
+  "public employees' retirement": '7900',
+  'public employees retirement': '7900',
+  'csu, channel islands': '6610',
+  'csu channel islands': '6610',
 };
 
 async function getAgencyForEvent(eventId: string): Promise<string | null> {
