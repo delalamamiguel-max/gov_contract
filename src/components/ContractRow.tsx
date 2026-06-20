@@ -182,7 +182,7 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
             <h3 style={{ fontSize: '1.25rem' }}>{opp.title}</h3>
             {/* Always-visible match score + label */}
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ fontSize: '0.95rem', fontWeight: 700, color: chip.fg }}>{a.matchScore}%</span>
+              {expanded && <span style={{ fontSize: '0.95rem', fontWeight: 700, color: chip.fg }}>{a.matchScore}%</span>}
               <span style={{ padding: '0.2rem 0.5rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 600, background: chip.bg, color: chip.fg }}>
                 {a.label}
               </span>

@@ -28,7 +28,7 @@ import { labelFor, type OpportunityAssessment } from '@/lib/assessment';
 
 const KIMI_API_KEY = process.env.OLLAMA_API_KEY || process.env.KIMI_API_KEY || '';
 const KIMI_BASE_URL = process.env.KIMI_BASE_URL || process.env.AI_BASE_URL || 'https://ollama.com/v1';
-const KIMI_MODEL = process.env.KIMI_MODEL || 'kimi-k2-thinking';
+const KIMI_MODEL = process.env.KIMI_MODEL || 'glm-5.2:cloud';
 const KIMI_MAX_TOKENS = Number(process.env.KIMI_MAX_TOKENS || 3000);
 const KIMI_TIMEOUT_MS = 30_000;
 const CACHE_TTL_DAYS = 7;

@@ -15,7 +15,7 @@ import OpenAI from 'openai';
 
 const AI_API_KEY = process.env.OLLAMA_API_KEY || process.env.KIMI_API_KEY || '';
 const AI_BASE_URL = process.env.AI_BASE_URL || 'https://ollama.com/v1';
-const AI_MODEL = process.env.AI_MODEL || 'gpt-oss:20b';
+const AI_MODEL = process.env.AI_MODEL || 'glm-5.2:cloud';
 const AI_REQUEST_TIMEOUT_MS = 25_000;
 
 const aiEnabled = Boolean(AI_API_KEY);

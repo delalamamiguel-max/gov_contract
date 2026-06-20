@@ -92,35 +92,43 @@ try {
       // Capture the exact real deep link URL while on the details page
       itemUrl = page.url();
 
-      // Click "View Event Package" to go to the attachments page
-      const pkgBtn = await page.$('input[value="View Event Package"]');
-      if (pkgBtn) {
-        await pkgBtn.click();
+      // Click "View Event Package" or "View Bid Comments" / "View Event Comments"
+      let btnToClick = await page.$('input[value="View Event Package"]');
+      if (!btnToClick) {
+        btnToClick = await page.$('input[value="View Bid Comments"]');
+      }
+      if (!btnToClick) {
+        btnToClick = await page.$('input[value="View Event Comments"]');
+      }
+
+      if (btnToClick) {
+        await btnToClick.click();
         await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
         await page.waitForTimeout(3000);
 
         // Extract the attachments table
         attachments = await page.evaluate(() => {
-          const table = document.querySelector('table[id^="RESP_INQ_ATT_VW$scroll"]');
+          const table = document.querySelector('table[id^="RESP_INQ_ATT_VW$scroll"]') || document.querySelector('table[id^="AUC_ATT_VW$scroll"]') || document.querySelector('table[id*="ATT_VW"]');
           if (!table) return [];
           
           const rows = Array.from(table.querySelectorAll('tr')).slice(1); // skip header
           return rows.map(r => {
             const cells = r.querySelectorAll('td');
-            if (cells.length < 3) return null;
-            const link = cells[1].querySelector('a');
+            if (cells.length < 2) return null; // Relaxed from 3 to 2 because sometimes there is no description column
+            const link = cells[1]?.querySelector('a') || cells[0]?.querySelector('a');
+            if (!link) return null;
             return {
-              name: (link?.textContent || cells[1].textContent || '').trim(),
-              description: (cells[2].textContent || '').trim(),
-              url: link?.href || '',
+              name: link.textContent.trim(),
+              description: cells.length >= 3 ? (cells[2].textContent || '').trim() : '',
+              url: link.href || '',
             };
           }).filter(Boolean);
         });
 
         console.log(`Found ${attachments.length} attachments for ${item.eventId}`);
 
-        // Click "Return to Event Search" to go back to the details page
-        const returnBtn1 = await page.$('input[value="Return to Event Search"]');
+        // Click "Return to Event Search" or "Return" to go back to the details page
+        const returnBtn1 = await page.$('input[value="Return to Event Search"]') || await page.$('input[value="Return"]');
         if (returnBtn1) {
           await returnBtn1.click();
           await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});

@@ -1,0 +1,30 @@
+Info: Deploying Actor 'caleprocure-listings' to Apify.
+Run: Updated version 0.1 for Actor caleprocure-listings.
+Run: Building Actor caleprocure-listings
+2026-06-19T16:56:58.003Z ACTOR: Selected directory: .
+2026-06-19T16:56:58.006Z ACTOR: Found input schema referenced from .actor/actor.json
+2026-06-19T16:56:58.578Z ACTOR: Building container image (cache enabled).
+2026-06-19T16:56:58.678Z #1 [internal] load build definition from Dockerfile
+2026-06-19T16:56:58.877Z #1 transferring dockerfile: 497B done
+2026-06-19T16:56:58.878Z #1 DONE 0.0s
+2026-06-19T16:56:58.879Z #2 [auth] apify/actor-node-playwright-chrome:pull token for registry-1.docker.io
+2026-06-19T16:56:58.879Z #2 DONE 0.0s
+2026-06-19T16:56:58.879Z #3 [internal] load metadata for docker.io/apify/actor-node-playwright-chrome:20
+2026-06-19T16:56:59.140Z #3 DONE 0.4s
+2026-06-19T16:56:59.272Z #4 [internal] load .dockerignore
+2026-06-19T16:56:59.273Z #4 transferring context: 64B done
+2026-06-19T16:56:59.273Z #4 DONE 0.0s
+2026-06-19T16:56:59.273Z #5 importing cache manifest from s3:13813081022742222593
+2026-06-19T16:56:59.274Z #5 DONE 0.0s
+2026-06-19T16:56:59.274Z #6 [internal] load build context
+2026-06-19T16:56:59.274Z #6 transferring context: 14.59kB done
+2026-06-19T16:56:59.275Z #6 DONE 0.0s
+2026-06-19T16:56:59.275Z #7 [1/4] FROM docker.io/apify/actor-node-playwright-chrome:20@sha256:b6974285b2c389fb37f526fb24c67a2a5d5cbe373d44efa12d6a8038014941ea
+2026-06-19T16:56:59.275Z #7 resolve docker.io/apify/actor-node-playwright-chrome:20@sha256:b6974285b2c389fb37f526fb24c67a2a5d5cbe373d44efa12d6a8038014941ea 0.0s done
+2026-06-19T16:56:59.276Z #7 DONE 0.1s
+2026-06-19T16:56:59.486Z #8 [2/4] COPY --chown=myuser package.json ./
+2026-06-19T16:56:59.486Z #8 DONE 0.1s
+2026-06-19T16:56:59.487Z #9 [3/4] RUN npm install --omit=dev --no-audit --no-fund  && echo "Installed dependencies:" && npm ls --omit=dev || true
+Actor build detail https://console.apify.com/actors/jB5KfwrOCXSSR6tNf#/builds/0.1.6
+Actor detail https://console.apify.com/actors/jB5KfwrOCXSSR6tNf
+Warning: Build is still running.

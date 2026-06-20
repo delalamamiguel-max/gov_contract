@@ -1,0 +1,6 @@
+{
+  "error": {
+    "type": "invalid-content-type-header",
+    "message": "Requests with JSON payloads need to specify the application/json Content-Type header."
+  }
+}
