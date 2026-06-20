@@ -13,16 +13,12 @@ export interface OnboardingAnswers {
   annualRevenue: string;
   primaryCapability: string;
   services: string[];
-  industries: string[];
-  targetOpportunityTypes: string[];
-  location: string;
-  remotePreference: string;
-  serviceRadiusMiles: string;
   minContractRange: string;          // e.g. "Under $25K", "$25K – $100K"
   maxContractRange: string;
   priorGovExperience: string;
   certifications: string[];
   insurance: string[];
+  generalLiabilityLimit?: string;
   proposalReadiness: string[];
   differentiators: string[];
   caPresence: string;
@@ -124,13 +120,11 @@ function parseContractRange(range: string): number | null {
 // Map CA presence to a default location + radius when location is not set
 function deriveLocationFromCaPresence(caPresence: string): { location?: string; serviceRadiusMiles?: number; remotePreference?: AgencyProfile['remotePreference'] } {
   switch (caPresence) {
-    case 'HQ in California':
+    case 'Yes, we\'re California-based':
       return { location: 'California', serviceRadiusMiles: 100 };
-    case 'Remote — we work anywhere in CA':
+    case 'Yes, we\'re registered but headquartered elsewhere':
       return { location: 'California', serviceRadiusMiles: 500, remotePreference: 'remote' };
-    case 'Regional office in California':
-      return { location: 'California', serviceRadiusMiles: 150, remotePreference: 'hybrid' };
-    case 'No California presence yet':
+    case 'No, not yet':
       return { remotePreference: 'remote' };
     default:
       return {};
@@ -153,27 +147,6 @@ export function answersToProfile(a: Partial<OnboardingAnswers>): Partial<AgencyP
   const userServices = a.services && a.services.length > 0 ? a.services : [];
   if (a.primaryCapability || userServices.length > 0) {
     profile.services = capabilityToServices(a.primaryCapability || '', userServices);
-  }
-
-  // Industries
-  if (a.industries && a.industries.length > 0) {
-    profile.industries = a.industries;
-  }
-
-  // Target opportunity types
-  if (a.targetOpportunityTypes && a.targetOpportunityTypes.length > 0) {
-    profile.targetOpportunityTypes = a.targetOpportunityTypes;
-  }
-
-  // Location: prefer explicit location, fallback to CA presence derivation
-  if (a.location) {
-    profile.location = a.location;
-  }
-  if (a.remotePreference) {
-    profile.remotePreference = a.remotePreference as AgencyProfile['remotePreference'];
-  }
-  if (a.serviceRadiusMiles) {
-    profile.serviceRadiusMiles = parseInt(a.serviceRadiusMiles, 10) || null;
   }
 
   // CA presence fallback: derive location signals if not explicitly set
@@ -205,7 +178,13 @@ export function answersToProfile(a: Partial<OnboardingAnswers>): Partial<AgencyP
 
   // Insurance
   if (a.insurance && a.insurance.length > 0) {
-    profile.insurance = a.insurance;
+    profile.insurance = a.insurance.filter((i) => i !== 'None of these yet');
+    
+    if (a.generalLiabilityLimit && a.generalLiabilityLimit !== '') {
+      if (!profile.insurance.includes(a.generalLiabilityLimit)) {
+        profile.insurance.push(a.generalLiabilityLimit);
+      }
+    }
   }
 
   // Proposal readiness

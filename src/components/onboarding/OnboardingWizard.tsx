@@ -1,13 +1,7 @@
 'use client';
 
 // ---------------------------------------------------------------------------
-// OnboardingWizard — expanded 12-question flow.
-//
-// Flow: Bridge (0) → Agency type (1) → Size & revenue (2) → Primary
-// capability (3) → Services (4) → Industries (5) → Target opp types (6)
-// → Location & remote pref (7) → Contract size (8) → Gov experience (9)
-// → Certifications (10) → Insurance + Readiness + Differentiators (11)
-// → /en/onboarding/payoff  (or onComplete callback for re-onboard)
+// OnboardingWizard — consolidated flow.
 //
 // All answers are saved to localStorage after every advance so the user can
 // refresh or close and resume within 24 hours.
@@ -20,15 +14,14 @@ import { ChevronLeft, ChevronRight, Zap, Check } from 'lucide-react';
 import {
   AGENCY_TYPES, TEAM_SIZES, ANNUAL_REVENUE_RANGES, PRIMARY_CAPABILITIES,
   GOV_EXPERIENCE_OPTIONS, CERTIFICATIONS, CA_PRESENCE_OPTIONS,
-  SERVICES, INDUSTRIES, TARGET_OPPORTUNITY_TYPES,
-  REMOTE_PREFERENCE, INSURANCE, PROPOSAL_READINESS, DIFFERENTIATORS,
+  INSURANCE_COVERAGE, GENERAL_LIABILITY_LIMITS, PROPOSAL_READINESS, DIFFERENTIATORS,
   CONTRACT_SIZE_RANGES,
 } from './options';
 import {
   saveSession, loadSession, type OnboardingAnswers,
 } from '@/lib/onboardingSession';
 
-const TOTAL_QUESTIONS = 11;
+const TOTAL_QUESTIONS = 9;
 
 // ---------------------------------------------------------------------------
 // Tiny UI primitives
@@ -127,7 +120,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
 // Main wizard component
 // ---------------------------------------------------------------------------
 
-type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+type Step = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 type Answers = Partial<OnboardingAnswers>;
 
@@ -137,16 +130,12 @@ const DEFAULT_ANSWERS: Answers = {
   annualRevenue: '',
   primaryCapability: '',
   services: [],
-  industries: [],
-  targetOpportunityTypes: [],
-  location: '',
-  remotePreference: '',
-  serviceRadiusMiles: '',
   minContractRange: '',
   maxContractRange: '',
   priorGovExperience: '',
   certifications: [],
   insurance: [],
+  generalLiabilityLimit: '',
   proposalReadiness: [],
   differentiators: [],
   caPresence: '',
@@ -233,37 +222,20 @@ export default function OnboardingWizard({
         {/* ── Screen 0: Bridge ─────────────────────────────────────────── */}
         {step === 0 && mode === 'signup' && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '-0.5rem' }}>
-              <Zap size={22} color="var(--accent-primary)" />
-              <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--accent-primary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Free match preview
-              </span>
-            </div>
-            <h2 style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.25 }}>
-              See which California government contracts fit your agency — before you sign up.
+            <h2 style={{ fontSize: '2rem', fontWeight: 700, lineHeight: 1.25 }}>
+              Let's find your matches.
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-              Answer a few quick questions (under 3 minutes) and we&apos;ll show you real, live opportunities scored against your profile. No credit card. No commitment.
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1.6 }}>
+              Quick questions. Then we show you the RFPs worth your time.
             </p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {['Personalized to your services and capabilities', 'Live California public-sector opportunities', 'See your match score instantly'].map((item) => (
-                <li key={item} style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                  <Check size={15} color="var(--accent-primary)" />
-                  {item}
-                </li>
-              ))}
-            </ul>
             <button
               type="button"
               className="btn btn-primary"
               onClick={() => saveAndAdvance({ startedAt: new Date().toISOString() }, 1)}
               style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.75rem', fontSize: '1rem' }}
             >
-              Show me my matches <ChevronRight size={18} />
+              Let's go <ChevronRight size={18} />
             </button>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '-0.5rem' }}>
-              No account required yet. Signup happens after you see your results.
-            </p>
           </>
         )}
 
@@ -276,10 +248,10 @@ export default function OnboardingWizard({
               </span>
             </div>
             <h2 style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.25 }}>
-              Let&apos;s get your business profile back on track.
+              Let's get your business profile back on track.
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.6 }}>
-              We&apos;ll walk you through a few quick questions to reset your core details and recalibrate your contract recommendations.
+              We'll walk you through a few quick questions to reset your core details and recalibrate your contract recommendations.
             </p>
             <button
               type="button"
@@ -287,7 +259,7 @@ export default function OnboardingWizard({
               onClick={() => saveAndAdvance({ startedAt: new Date().toISOString() }, 1)}
               style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.85rem 1.75rem', fontSize: '1rem' }}
             >
-              Let&apos;s go <ChevronRight size={18} />
+              Let's go <ChevronRight size={18} />
             </button>
           </>
         )}
@@ -295,9 +267,9 @@ export default function OnboardingWizard({
         {/* ── Screen 1: Agency type ─────────────────────────────────────── */}
         {step === 1 && (
           <>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What type of agency are you?</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What kind of agency are you?</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
-              Pick the one that fits best.
+              Pick the one that best describes how you go to market.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {AGENCY_TYPES.map((type) => (
@@ -315,7 +287,10 @@ export default function OnboardingWizard({
         {/* ── Screen 2: Size & Revenue ─────────────────────────────────── */}
         {step === 2 && (
           <>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Tell us about your team</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>How big is your agency?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
+              This helps us filter out contracts your team can't staff.
+            </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Team size</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -338,9 +313,9 @@ export default function OnboardingWizard({
         {/* ── Screen 3: Primary capability ─────────────────────────────── */}
         {step === 3 && (
           <>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What is your primary capability?</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What does your agency lead with?</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
-              The service you&apos;re best known for.
+              Pick one. This is how we match you to scope.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {PRIMARY_CAPABILITIES.map((cap) => (
@@ -355,103 +330,32 @@ export default function OnboardingWizard({
           </>
         )}
 
-        {/* ── Screen 4: Services (multi-select) ───────────────────────── */}
+        {/* ── Screen 4: CA Presence ──────────────────── */}
         {step === 4 && (
           <>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Which services do you offer?</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Is your agency registered to do business in California?</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
-              Select all that apply. This directly improves your match accuracy.
+              Some RFPs require a California-registered entity. This filters out opportunities you can't legally pursue.
             </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {SERVICES.map((svc) => (
-                <Chip
-                  key={svc}
-                  label={svc}
-                  active={(answers.services ?? []).includes(svc)}
-                  onClick={() => toggleArr('services', svc)}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              {CA_PRESENCE_OPTIONS.map((opt) => (
+                <OptionCard
+                  key={opt}
+                  label={opt}
+                  selected={answers.caPresence === opt}
+                  onClick={() => autoAdvance({ caPresence: opt })}
                 />
               ))}
             </div>
           </>
         )}
 
-        {/* ── Screen 5: Industries (multi-select) ─────────────────────── */}
+        {/* ── Screen 5: Contract size ─────────────────────────────────── */}
         {step === 5 && (
           <>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What industries do you serve?</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What's your preferred contract size?</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
-              Select all that apply.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {INDUSTRIES.map((ind) => (
-                <Chip
-                  key={ind}
-                  label={ind}
-                  active={(answers.industries ?? []).includes(ind)}
-                  onClick={() => toggleArr('industries', ind)}
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* ── Screen 6: Target opportunity types (multi-select) ────────── */}
-        {step === 6 && (
-          <>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What types of work are you looking for?</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
-              Select all that apply.
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {TARGET_OPPORTUNITY_TYPES.map((t) => (
-                <Chip
-                  key={t}
-                  label={t}
-                  active={(answers.targetOpportunityTypes ?? []).includes(t)}
-                  onClick={() => toggleArr('targetOpportunityTypes', t)}
-                />
-              ))}
-            </div>
-          </>
-        )}
-
-        {/* ── Screen 7: Location & remote preference ──────────────────── */}
-        {step === 7 && (
-          <>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Where are you based?</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
-              This helps us match you with contracts in your service area.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>California presence</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {CA_PRESENCE_OPTIONS.map((opt) => (
-                  <OptionCard
-                    key={opt}
-                    label={opt}
-                    selected={answers.caPresence === opt}
-                    onClick={() => update({ caPresence: opt })}
-                  />
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem' }}>
-              <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Work preference</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {REMOTE_PREFERENCE.map((rp) => (
-                  <Chip key={rp.value} label={rp.label} active={answers.remotePreference === rp.value} onClick={() => update({ remotePreference: rp.value })} />
-                ))}
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* ── Screen 8: Contract size ─────────────────────────────────── */}
-        {step === 8 && (
-          <>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What&apos;s your preferred contract size?</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
-              We&apos;ll prioritize opportunities that fit your capacity.
+              We'll prioritize opportunities that fit your capacity.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Minimum</label>
@@ -472,8 +376,8 @@ export default function OnboardingWizard({
           </>
         )}
 
-        {/* ── Screen 9: Gov experience ─────────────────────────────────── */}
-        {step === 9 && (
+        {/* ── Screen 6: Gov experience ─────────────────────────────────── */}
+        {step === 6 && (
           <>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Have you done government work before?</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
@@ -493,15 +397,15 @@ export default function OnboardingWizard({
           </>
         )}
 
-        {/* ── Screen 10: Certifications ────────────────────────────────── */}
-        {step === 10 && (
+        {/* ── Screen 7: Certifications ────────────────────────────────── */}
+        {step === 7 && (
           <>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Do you hold any certifications?</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Do you hold any of these certifications?</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
-              Many public contracts have set-aside preferences. Select all that apply.
+              Many RFPs require these. Checking now saves you time later.
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-              {[...CERTIFICATIONS, 'None of these'].map((cert) => (
+              {CERTIFICATIONS.map((cert) => (
                 <Chip
                   key={cert}
                   label={cert}
@@ -513,27 +417,58 @@ export default function OnboardingWizard({
           </>
         )}
 
-        {/* ── Screen 11: Insurance + Readiness + Differentiators ────────── */}
-        {step === 11 && (
+        {/* ── Screen 8: Insurance ────────── */}
+        {step === 8 && (
+          <>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>What insurance does your agency carry?</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
+              Most government RFPs require proof of coverage before you can submit. This filters out opportunities you don't qualify for yet.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+              <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Coverage types</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {INSURANCE_COVERAGE.map((ins) => (
+                  <Chip
+                    key={ins}
+                    label={ins}
+                    active={(answers.insurance ?? []).includes(ins)}
+                    onClick={() => {
+                      toggleArr('insurance', ins, 'None of these yet');
+                      if (ins === 'Commercial General Liability' && (answers.insurance ?? []).includes(ins)) {
+                        update({ generalLiabilityLimit: '' }); // Clear limit if unchecking CGL
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {(answers.insurance ?? []).includes('Commercial General Liability') && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', marginTop: '0.5rem' }}>
+                <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>General Liability limit</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                  {GENERAL_LIABILITY_LIMITS.map((limit) => (
+                    <OptionCard
+                      key={limit}
+                      label={limit}
+                      selected={answers.generalLiabilityLimit === limit}
+                      onClick={() => update({ generalLiabilityLimit: limit })}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Screen 9: Readiness & Differentiators ────────── */}
+        {step === 9 && (
           <>
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Almost done — a few more details</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '-0.75rem' }}>
               These help us score your competitiveness on each contract.
             </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Insurance coverage</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {INSURANCE.map((ins) => (
-                  <Chip
-                    key={ins}
-                    label={ins}
-                    active={(answers.insurance ?? []).includes(ins)}
-                    onClick={() => toggleArr('insurance', ins)}
-                  />
-                ))}
-              </div>
-            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <label style={{ fontWeight: 600, fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Proposal materials on hand</label>
@@ -565,7 +500,7 @@ export default function OnboardingWizard({
           </>
         )}
 
-        {/* ── Navigation (screens 1–11 only) ───────────────────────────── */}
+        {/* ── Navigation (screens 1–9 only) ───────────────────────────── */}
         {step > 0 && (
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.75rem', borderTop: '1px solid var(--border-color)' }}>
             <button

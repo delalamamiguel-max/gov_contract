@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Clock, Gauge, Award, AlertTriangle, FileText, HelpCircle, Target } from 'lucide-react';
+import { Target, FileText, CheckCircle, AlertTriangle, ListChecks, Clock, DollarSign, BookOpen, Link } from 'lucide-react';
 import type { RfpAssessment, RfpRecommendation } from '@/lib/rfp';
 
 const recColor: Record<RfpRecommendation, { bg: string; fg: string }> = {
@@ -23,6 +23,7 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
 }
 
 function List({ items }: { items: string[] }) {
+  if (!items || items.length === 0) return <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)' }}>None specified</p>;
   return (
     <ul style={{ margin: 0, paddingLeft: '1.1rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
       {items.map((s, i) => <li key={i} style={{ fontSize: '0.86rem', lineHeight: 1.45 }}>{s}</li>)}
@@ -31,59 +32,77 @@ function List({ items }: { items: string[] }) {
 }
 
 export default function RfpAssessmentView({ a }: { a: RfpAssessment }) {
-  const rc = recColor[a.recommendation];
+  const rc = recColor[a.recommendation] || recColor['Pass'];
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {/* Recommendation banner */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', background: rc.bg, borderRadius: 8, padding: '0.75rem 1rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-          <Target size={18} color={rc.fg} />
-          <div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Recommendation</div>
-            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: rc.fg }}>{a.recommendation}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', flexWrap: 'wrap', background: rc.bg, borderRadius: 8, padding: '0.75rem 1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <Target size={18} color={rc.fg} />
+            <div>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Recommendation</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 700, color: rc.fg }}>{a.recommendation}</div>
+            </div>
           </div>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600, color: rc.fg }}>{a.matchScore}% match</span>
         </div>
-        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: rc.fg }}>{a.matchScore}% match</span>
-      </div>
-      <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{a.recommendationRationale}</p>
-
-      <Section icon={<FileText size={14} />} title="Opportunity summary">
-        <p style={{ fontSize: '0.88rem', lineHeight: 1.5 }}>{a.summary}</p>
-      </Section>
-
-      <Section icon={<Target size={14} />} title="Scope requirements"><List items={a.scopeRequirements} /></Section>
-
-      <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <Section icon={<FileText size={14} />} title="Required documents"><List items={a.requiredDocuments} /></Section>
-        </div>
-        <div style={{ flex: 1, minWidth: 220 }}>
-          <Section icon={<AlertTriangle size={14} />} title="Eligibility requirements"><List items={a.eligibilityRequirements} /></Section>
-        </div>
+        <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{a.recommendationRationale}</p>
       </div>
 
-      <Section icon={<Gauge size={14} />} title="Evaluation criteria"><List items={a.evaluationCriteria} /></Section>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        <Section icon={<FileText size={14} />} title="What this is">
+          <p style={{ fontSize: '0.88rem', lineHeight: 1.5 }}>{a.what_this_is}</p>
+        </Section>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        <Section icon={<CheckCircle size={14} color="#34d399" />} title="Why it fits">
+          <List items={a.why_it_fits} />
+        </Section>
+        <Section icon={<AlertTriangle size={14} color="#f87171" />} title="Why it may not fit">
+          <List items={a.why_it_may_not_fit} />
+        </Section>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        <Section icon={<ListChecks size={14} />} title="What is required to respond">
+          <List items={a.what_is_required_to_respond} />
+        </Section>
+        <Section icon={<ListChecks size={14} color="#60a5fa" />} title="Checklist before you apply">
+          <List items={a.checklist_before_you_apply} />
+        </Section>
+      </div>
 
       <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 220, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <Clock size={15} color="#fbbf24" />
           <div>
             <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Deadline</div>
-            <div style={{ fontSize: '0.86rem' }}>{a.deadlineUrgency}</div>
+            <div style={{ fontSize: '0.86rem' }}>{a.deadline}</div>
           </div>
         </div>
         <div style={{ flex: 1, minWidth: 220, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Gauge size={15} color="#60a5fa" />
+          <DollarSign size={15} color="#60a5fa" />
           <div>
-            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Estimated effort</div>
-            <div style={{ fontSize: '0.86rem' }}>{a.estimatedEffort}</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Amount or value</div>
+            <div style={{ fontSize: '0.86rem' }}>{a.amount_or_value}</div>
           </div>
         </div>
       </div>
 
-      <Section icon={<AlertTriangle size={14} />} title="Risks / blockers"><List items={a.risks} /></Section>
-      <Section icon={<Award size={14} />} title="Competitive advantages"><List items={a.competitiveAdvantages} /></Section>
-      <Section icon={<HelpCircle size={14} />} title="Questions to ask the buyer"><List items={a.questionsForBuyer} /></Section>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
+        <Section icon={<AlertTriangle size={14} color="#fbbf24" />} title="Important watchouts">
+          <List items={a.important_watchouts} />
+        </Section>
+        <Section icon={<BookOpen size={14} />} title="Recommended supporting materials">
+          <List items={a.recommended_supporting_materials} />
+        </Section>
+      </div>
+
+      <Section icon={<Link size={14} />} title="Source documents used">
+        <List items={a.source_documents_used} />
+      </Section>
 
       {a.source === 'fallback' && (
         <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Narrative generated from a rules-based template (AI unavailable).</p>

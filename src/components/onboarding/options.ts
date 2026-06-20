@@ -37,34 +37,6 @@ export const SERVICES = [
   'Other',
 ];
 
-export const INDUSTRIES = [
-  'Government / public sector',
-  'Education',
-  'Healthcare',
-  'Nonprofit',
-  'Economic development',
-  'Tourism / hospitality',
-  'Real estate',
-  'Retail / ecommerce',
-  'Financial services',
-  'Technology',
-  'Professional services',
-  'Other',
-];
-
-export const TARGET_OPPORTUNITY_TYPES = [
-  'One-time campaign',
-  'Retainer',
-  'Website / project-based work',
-  'Media buying',
-  'Creative production',
-  'Research / strategy',
-  'Communications / PR',
-  'Branding project',
-  'Ongoing marketing support',
-  'Translation / localization support',
-];
-
 export const DELIVERY_CAPACITY = [
   'Can start immediately',
   'Can start within 2 weeks',
@@ -75,21 +47,26 @@ export const DELIVERY_CAPACITY = [
 export const TEAM_SIZES = ['1-2', '3-5', '6-10', '11-25', '26-50', '50+'];
 
 export const CERTIFICATIONS = [
-  'Small Business',
+  'Small Business (California certified)',
   'Minority Business Enterprise (MBE)',
   'Women-Owned Business (WBE)',
-  'Veteran-Owned Business',
+  'Disabled Veteran Business Enterprise (DVBE)',
   'HUBZone',
-  'DBE',
-  'State / local certification',
-  'Other',
+  'None of these',
 ];
 
-export const INSURANCE = [
-  'General liability',
-  'Professional liability / E&O',
-  'Cyber liability',
-  'Workers comp',
+export const INSURANCE_COVERAGE = [
+  'Commercial General Liability',
+  'Professional Liability / E&O',
+  'Cyber Liability',
+  'Workers\' Compensation',
+  'None of these yet',
+];
+
+export const GENERAL_LIABILITY_LIMITS = [
+  'Under $1M',
+  '$1M per occurrence / $2M aggregate',
+  '$2M+ per occurrence',
 ];
 
 export const PRIOR_GOV_EXPERIENCE = [
@@ -129,12 +106,6 @@ export const ROLES = [
   { value: 'both', label: 'Both' },
 ];
 
-export const REMOTE_PREFERENCE = [
-  { value: 'local', label: 'Local / on-site' },
-  { value: 'remote', label: 'Remote' },
-  { value: 'hybrid', label: 'Hybrid' },
-];
-
 export const ALERT_PREFERENCES = [
   'Email alerts',
   'Dashboard alerts',
@@ -144,10 +115,6 @@ export const ALERT_PREFERENCES = [
   'All relevant opportunities',
 ];
 
-// ---------------------------------------------------------------------------
-// New value-first onboarding flow (6-question wizard, pre-signup)
-// ---------------------------------------------------------------------------
-
 export const ANNUAL_REVENUE_RANGES = [
   'Under $250K',
   '$250K – $500K',
@@ -156,17 +123,19 @@ export const ANNUAL_REVENUE_RANGES = [
   '$3M+',
 ];
 
+export const CA_PRESENCE_OPTIONS = [
+  'Yes, we\'re California-based',
+  'Yes, we\'re registered but headquartered elsewhere',
+  'No, not yet',
+];
+
 export const PRIMARY_CAPABILITIES = [
-  'Digital marketing',
-  'Branding & design',
-  'Public relations',
-  'Website / web app development',
-  'Video production',
-  'Print / OOH advertising',
-  'Media buying',
-  'Market research',
-  'Translation / multilingual',
-  'Full-service',
+  'Brand strategy and creative',
+  'Digital campaigns and performance',
+  'Media planning and buying',
+  'Public relations and communications',
+  'Community outreach and multicultural',
+  'Content and social media',
 ];
 
 export const GOV_EXPERIENCE_OPTIONS = [
@@ -175,17 +144,51 @@ export const GOV_EXPERIENCE_OPTIONS = [
   { value: 'no', label: 'No — but we\'re ready', description: 'First time pursuing public-sector work' },
 ];
 
-export const CA_PRESENCE_OPTIONS = [
-  'HQ in California',
-  'Remote — we work anywhere in CA',
-  'Regional office in California',
-  'No California presence yet',
-];
-
 export const CONTRACT_SIZE_RANGES = [
   'Under $25K',
   '$25K – $100K',
   '$100K – $500K',
   '$500K – $1M',
   '$1M+',
+];
+
+export const INDUSTRIES = [
+  'Government / public sector',
+  'Education',
+  'Healthcare',
+  'Nonprofit',
+  'Economic development',
+  'Tourism / hospitality',
+  'Real estate',
+  'Retail / ecommerce',
+  'Financial services',
+  'Technology',
+  'Professional services',
+  'Other',
+];
+
+export const TARGET_OPPORTUNITY_TYPES = [
+  'One-time campaign',
+  'Retainer',
+  'Website / project-based work',
+  'Media buying',
+  'Creative production',
+  'Research / strategy',
+  'Communications / PR',
+  'Branding project',
+  'Ongoing marketing support',
+  'Translation / localization support',
+];
+
+export const REMOTE_PREFERENCE = [
+  { value: 'local', label: 'Local / on-site' },
+  { value: 'remote', label: 'Remote' },
+  { value: 'hybrid', label: 'Hybrid' },
+];
+
+export const INSURANCE = [
+  'General liability',
+  'Professional liability / E&O',
+  'Cyber liability',
+  'Workers comp',
 ];
