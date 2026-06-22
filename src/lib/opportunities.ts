@@ -37,6 +37,8 @@ export type OpportunityRecord = SamGovOpportunity & {
   ingestedAt?: string | null;
   /** Lifecycle state: 'active' (biddable) | 'planned' (upcoming) | 'awarded'. */
   status?: string | null;
+  /** Full scraper payload (JSONB). Contains attachments for caleprocure rows. */
+  raw?: any;
 };
 
 export interface QueryOptions {
@@ -187,6 +189,7 @@ function rowToRecord(r: Record<string, any>): OpportunityRecord {
     lastSyncedAt: r.last_synced_at ?? null,
     ingestedAt: r.created_at ?? null,
     status: r.status ?? null,
+    raw: r.raw ?? null,
   };
 }
 

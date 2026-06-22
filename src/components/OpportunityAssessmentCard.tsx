@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, AlertTriangle, XCircle, Award, ListChecks } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, XCircle, Award } from 'lucide-react';
 import type { OpportunityAssessment, GroupScore, MatchLabel } from '@/lib/assessment';
 import ReadinessEditor from '@/components/ReadinessEditor';
 
@@ -97,15 +97,10 @@ export default function OpportunityAssessmentCard({ a }: { a: OpportunityAssessm
 
       {/* Proposal readiness */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <ListChecks size={14} /> Proposal readiness
-          </span>
-          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: barColor(a.proposalReadiness.percent) }}>{a.proposalReadiness.percent}%</span>
-        </div>
-        {a.proposalReadiness.missing.length > 0 && (
-          <ReadinessEditor missing={a.proposalReadiness.missing} />
-        )}
+        <ReadinessEditor
+          have={a.proposalReadiness.ready}
+          missing={a.proposalReadiness.missing}
+        />
       </div>
 
       {/* Recommended action */}

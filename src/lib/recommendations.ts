@@ -33,6 +33,8 @@ export interface RecommendationItem {
   sourceUrl: string;
   assessment: OpportunityAssessment;
   checklist: ProposalChecklist;
+  /** Full scraper payload (JSONB). Contains attachments for caleprocure rows. */
+  raw?: any;
   // Feed-specific:
   explanation: string;
   isNew: boolean;
@@ -208,6 +210,7 @@ export async function getRecommendations(
     sourceUrl: o.sourceUrl,
     assessment: a,
     checklist: computeChecklist(o, profile),
+    raw: o.raw ?? null,
     explanation: buildExplanation(o, profile, a),
     isNew,
     ingestedAt: o.ingestedAt ?? null,

@@ -94,6 +94,7 @@ export default async function SearchPage({
     sourceUrl: o.sourceUrl,
     assessment: a,
     checklist: computeChecklist(o, profile),
+    raw: o.raw ?? null,
   }));
 
   return (
