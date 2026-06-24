@@ -3,6 +3,7 @@ import { queryOpportunities, countOpportunities } from '@/lib/opportunities';
 import { readProfile, hasProfile } from '@/lib/profile';
 import { computeAssessment } from '@/lib/assessment';
 import { applyKimiAdjustments } from '@/lib/aiScoring';
+import { applySemanticAdjustment } from '@/lib/embeddings';
 import { computeChecklist } from '@/lib/checklist';
 import { readFeedbackSignals } from '@/lib/feedback';
 import SearchResults from '@/components/SearchResults';
@@ -73,6 +74,9 @@ export default async function SearchPage({
   // AI nuance pass (Kimi) on the top results above the fold. Cache-first, safe
   // no-op when unconfigured; an adjustment can reorder, so re-sort after.
   await applyKimiAdjustments(radiusFiltered, profile, 10);
+  // Phase 3: bounded semantic re-rank. Cached-only here (recommendations warms
+  // the profile vector) to keep search fast; safe no-op when absent.
+  await applySemanticAdjustment(radiusFiltered, profile, { computeProfile: false });
   radiusFiltered.sort((x, y) => y.a.matchScore - x.a.matchScore);
   const hiddenByRadius = assessed.length - radiusFiltered.length;
 

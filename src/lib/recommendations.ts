@@ -3,6 +3,7 @@ import { queryOpportunities, type OpportunityRecord } from '@/lib/opportunities'
 import { computeAssessment, type OpportunityAssessment, type FeedbackSignalInput } from '@/lib/assessment';
 import { computeChecklist, type ProposalChecklist } from '@/lib/checklist';
 import { applyKimiAdjustments } from '@/lib/aiScoring';
+import { applySemanticAdjustment } from '@/lib/embeddings';
 
 /** How many top candidates (by deterministic score) get an AI nuance review. */
 const KIMI_TOP_N = 20;
@@ -188,6 +189,9 @@ export async function getRecommendations(
   // matches are intentionally not AI-reviewed (saves budget).
   allScored.sort((x, y) => y.a.matchScore - x.a.matchScore);
   await applyKimiAdjustments(allScored, profile, KIMI_TOP_N);
+  // Phase 3: bounded semantic re-ranking using document embeddings. Warms the
+  // profile vector on first use (cached thereafter); safe no-op without vectors.
+  await applySemanticAdjustment(allScored, profile, { computeProfile: true });
 
   const scored = allScored.filter(({ a }) => a.matchScore >= minScore);
   const otherScored = allScored.filter(({ a }) => a.matchScore < minScore);
