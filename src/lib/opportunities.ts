@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabase';
 import type { SamGovOpportunity } from '@/lib/samgov';
 import { caleprocureEventUrl } from '@/lib/sources/caleprocure';
+import { intelToContentText, type OpportunityEntities } from '@/lib/intel';
 
 // ---------------------------------------------------------------------------
 // Opportunities data-access layer. ALL user-facing reads go through here and
@@ -39,7 +40,44 @@ export type OpportunityRecord = SamGovOpportunity & {
   status?: string | null;
   /** Full scraper payload (JSONB). Contains attachments for caleprocure rows. */
   raw?: any;
+  /** Phase 2 intel: concise SOW-derived text for the deterministic keyword scorer. */
+  contentText?: string | null;
+  /** Phase 2 intel: plain-English scope summary for the AI (Kimi) scoring prompt. */
+  contentSummary?: string | null;
+  /** Phase 2 intel: structured entities (required services, deliverables, eval criteria…). */
+  intelEntities?: OpportunityEntities | null;
 };
+
+/**
+ * Attach Phase 2 intel (scope summary + structured entities) to records that
+ * have it, so scoring can use the real SOW instead of the listing blurb.
+ * Best-effort: most opportunities have no intel yet and pass through unchanged.
+ */
+async function attachIntel(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  records: OpportunityRecord[]
+): Promise<void> {
+  if (!supabase || records.length === 0) return;
+  const ids = records.map((r) => String(r.noticeId)).filter(Boolean);
+  if (ids.length === 0) return;
+  try {
+    const { data } = await supabase
+      .from('opportunity_intel')
+      .select('source_id, scope_summary, entities')
+      .in('source_id', ids);
+    if (!data || data.length === 0) return;
+    const map = new Map(data.map((d: Record<string, any>) => [d.source_id, d]));
+    for (const r of records) {
+      const intel = map.get(String(r.noticeId));
+      if (!intel) continue;
+      r.contentSummary = intel.scope_summary || null;
+      r.contentText = intelToContentText(intel.scope_summary ?? null, (intel.entities as OpportunityEntities) ?? null);
+      r.intelEntities = (intel.entities as OpportunityEntities) ?? null;
+    }
+  } catch {
+    /* best-effort — scoring falls back to the listing description */
+  }
+}
 
 export interface QueryOptions {
   keyword?: string;
@@ -231,7 +269,14 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
   // same non-keyword filters.
   const baseQuery = () => {
     let q = supabase.from(TABLE).select('*').in('status', VISIBLE_STATUSES as unknown as string[]).or(CA_OR_FILTER);
-    
+
+    // Phase 0 gate LIVE: only surface marketing/communications opportunities.
+    // is_marketing=true  → classified as relevant, always show.
+    // is_marketing=null  → not yet classified (new arrivals before the classify
+    //                      cron runs); show by default so the feed never goes dark.
+    // is_marketing=false → confirmed non-marketing; exclude.
+    q = q.or('is_marketing.eq.true,is_marketing.is.null');
+
     // Do not return expired contracts (where deadline is already past).
     const today = new Date().toISOString();
     q = q.or(`response_deadline.gte.${today},response_deadline.is.null`);
@@ -312,6 +357,7 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
           .limit(limit);
         const fill = (fillData || []).map(rowToRecord);
         const combined = dedupe([...matched, ...fill]);
+        await attachIntel(supabase, combined);
         return {
           results: combined,
           didExpand,
@@ -321,6 +367,7 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
         };
       }
 
+      await attachIntel(supabase, matched);
       return { results: matched, didExpand, usedFallback, matchedCount: matched.length };
     }
 
@@ -332,19 +379,26 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
       console.error('[Opportunities] query failed:', error.message);
       return { results: [], error: 'Could not load opportunities.' };
     }
-    return { results: (data || []).map(rowToRecord) };
+    const records = (data || []).map(rowToRecord);
+    await attachIntel(supabase, records);
+    return { results: records };
   } catch (e) {
     console.error('[Opportunities] query threw:', e instanceof Error ? e.message : e);
     return { results: [], error: 'Could not load opportunities.' };
   }
 }
 
-/** Count of stored active opportunities (for empty-state messaging). */
+/** Count of stored active marketing opportunities (for empty-state messaging). */
 export async function countOpportunities(): Promise<number> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 0;
   try {
-    const { count } = await supabase.from(TABLE).select('id', { count: 'exact', head: true }).in('status', VISIBLE_STATUSES as unknown as string[]).or(CA_OR_FILTER);
+    const { count } = await supabase
+      .from(TABLE)
+      .select('id', { count: 'exact', head: true })
+      .in('status', VISIBLE_STATUSES as unknown as string[])
+      .or(CA_OR_FILTER)
+      .or('is_marketing.eq.true,is_marketing.is.null');
     return count ?? 0;
   } catch {
     return 0;

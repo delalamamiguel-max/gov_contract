@@ -136,6 +136,10 @@ export interface OpportunityAssessment {
   // these are set; kimiReason explains what nuance the keyword engine missed.
   kimiAdjustment?: number;
   kimiReason?: string;
+  // Phase 3 semantic layer: cosine similarity (0..1) between the agency profile
+  // and the opportunity's document-derived embedding, when available. Drives a
+  // small bounded re-ranking nudge — never the primary score.
+  semanticScore?: number;
 }
 
 export interface AssessmentOpportunity {
@@ -146,6 +150,13 @@ export interface AssessmentOpportunity {
   estimatedValue?: number | null;
   responseDeadline?: string | null;
   placeOfPerformance?: string | null;
+  /**
+   * High-signal text distilled from the solicitation's attachments (Phase 2
+   * intel: scope summary + required services + deliverables + domain terms).
+   * When present it lets keyword matching see the real SOW instead of just the
+   * short listing blurb. Concise on purpose — structured entities, not raw text.
+   */
+  contentText?: string | null;
 }
 
 export function labelFor(score: number): MatchLabel {
@@ -172,7 +183,9 @@ export function computeAssessment(
   radius: number,
   signals?: FeedbackSignalInput
 ): OpportunityAssessment {
-  const hay = `${opp.title} ${opp.description || ''} ${opp.setAsideType || ''}`.toLowerCase();
+  // Include the Phase 2 SOW-derived content so service/industry/keyword matching
+  // sees the real scope, not just the title + listing blurb.
+  const hay = `${opp.title} ${opp.description || ''} ${opp.setAsideType || ''} ${opp.contentText || ''}`.toLowerCase();
   const excludeHit = (profile.excludeKeywords || []).find((x) => x && hay.includes(x.toLowerCase()));
   const services = (profile.services || []).map(lower);
   const industries = (profile.industries || []).map((i) => i.split('/')[0].trim().toLowerCase());

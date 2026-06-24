@@ -22,6 +22,13 @@ const APIFY_BASE = 'https://api.apify.com/v2';
 const RUN_TIMEOUT_MS = 290_000; // run-sync upper bound
 const RUN_MEMORY_MB = 4096;     // Playwright/Chromium needs headroom
 
+interface CaleprocureAttachment {
+  name?: string;
+  description?: string;
+  /** Always empty — Cal eProcure download links are session-bound; we link to the event page. */
+  url?: string;
+}
+
 interface CaleprocureItem {
   eventId?: string;
   name?: string;
@@ -30,6 +37,12 @@ interface CaleprocureItem {
   endDate?: string; // ISO (already parsed by the actor)
   status?: string;
   url?: string;
+  // Enrichment fields (populated when the actor could deep-link the event detail).
+  description?: string | null;
+  contactEmail?: string | null;
+  unspscCodes?: string[];
+  counties?: string[];
+  attachments?: CaleprocureAttachment[];
   [k: string]: unknown;
 }
 
@@ -84,26 +97,38 @@ export function mapCaleprocureRecord(item: CaleprocureItem): Record<string, unkn
   const isOpen = ['posted', 'open', 'active'].some((s) => statusRaw.includes(s)) || statusRaw === '';
   const deadline = parseDeadline(item.endDate, item.endRaw);
 
+  // Prefer the actor-harvested full solicitation text (from the event detail
+  // page) when available; otherwise fall back to a synthesized pointer.
+  const enrichedDescription = String(item.description || '').trim();
+  const description = enrichedDescription
+    ? enrichedDescription
+    : `California State bid opportunity from ${dept}.` +
+      (deadline ? ` Closes ${new Date(deadline).toLocaleDateString()}.` : '') +
+      ` Search event "${eventId}" on Cal eProcure to view full details and respond.`;
+
+  // Service-area counties (when harvested) give a more specific location than
+  // the blanket "California". Commas are safe in stored values (the CA read
+  // filter keys off `source`, not place_of_performance).
+  const counties = Array.isArray(item.counties) ? item.counties.filter(Boolean) : [];
+  const place = counties.length ? `${counties.join(', ')}, CA` : 'California';
+
   return {
     source: SOURCE,
     source_id: eventId,
     source_url: caleprocureEventUrl(eventId, item.url),
     title,
-    description:
-      `California State bid opportunity from ${dept}.` +
-      (deadline ? ` Closes ${new Date(deadline).toLocaleDateString()}.` : '') +
-      ` Search event "${eventId}" on Cal eProcure to view full details and respond.`,
+    description,
     description_url: null,
     agency: dept,
     naics_code: null,
     psc_code: null,
     set_aside_type: null,
-    place_of_performance: 'California',
+    place_of_performance: place,
     posted_date: null,
     response_deadline: deadline,
     estimated_value: null, // not provided at listing level
     status: isOpen ? 'active' : 'closed',
-    raw: item,
+    raw: item, // carries attachments[], contactEmail, unspscCodes, counties for the UI
     last_synced_at: new Date().toISOString(),
   };
 }
@@ -153,6 +178,16 @@ export async function syncCaleprocure(): Promise<SourceSyncSummary> {
   if (process.env.CALEPROCURE_KEYWORD) input.keyword = process.env.CALEPROCURE_KEYWORD;
   const limitEnv = parseInt(process.env.CALEPROCURE_LIMIT || '0', 10);
   if (Number.isFinite(limitEnv) && limitEnv > 0) input.limit = limitEnv;
+
+  // Per-event enrichment (detail page + attachments) is slow, so cap how many of
+  // the listed events get enriched per run to stay within Apify's 290s run-sync
+  // window. Events are listed newest-first, so the cap keeps fresh arrivals fully
+  // enriched while older ones (covered by the one-time backfill) stay listing-only.
+  // Set CALEPROCURE_ENRICH_LIMIT=0 to enrich everything (use only for async backfills).
+  const enrichLimit = parseInt(process.env.CALEPROCURE_ENRICH_LIMIT || '60', 10);
+  if (Number.isFinite(enrichLimit) && enrichLimit >= 0) input.enrichLimit = enrichLimit;
+  const concurrency = parseInt(process.env.CALEPROCURE_CONCURRENCY || '5', 10);
+  if (Number.isFinite(concurrency) && concurrency > 0) input.concurrency = concurrency;
 
   const runId = await openSyncRun(supabase, SOURCE, { actor: ACTOR, ...input });
   let imported = 0, updated = 0, failed = 0, total = 0;

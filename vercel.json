@@ -3,6 +3,22 @@
     {
       "path": "/api/cron/ingest",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/classify",
+      "schedule": "30 7 * * *"
+    },
+    {
+      "path": "/api/cron/extract",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/intel",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/embed",
+      "schedule": "0 13 * * *"
     }
   ]
 }

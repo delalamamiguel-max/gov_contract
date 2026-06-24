@@ -3,10 +3,16 @@
   "version": "0.1.0",
   "type": "module",
   "description": "Cal eProcure open bid listings scraper (Apify actor)",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": ">=18"
+  },
   "dependencies": {
+    "@huggingface/transformers": "^3.0.2",
     "apify": "^3.2.6",
-    "playwright": "1.60.0"
+    "mammoth": "^1.8.0",
+    "pdf-parse": "^1.1.1",
+    "playwright": "1.60.0",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "node src/main.js"

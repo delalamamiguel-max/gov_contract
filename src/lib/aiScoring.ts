@@ -62,6 +62,8 @@ export interface OppForScoring {
   setAsideType?: string | null;
   placeOfPerformance?: string | null;
   estimatedValue?: number | null;
+  /** Phase 2 scope summary distilled from the solicitation attachments. */
+  contentSummary?: string | null;
 }
 
 function oppId(o: OppForScoring): string {
@@ -168,7 +170,9 @@ OPPORTUNITY:
 - Set-aside: ${o.setAsideType || 'none'}
 - Place of performance: ${o.placeOfPerformance || 'n/a'}
 - Estimated value: ${o.estimatedValue ?? 'unknown'}
-- Description: ${(o.description || '(no description available)').slice(0, 2000)}
+- ${o.contentSummary
+    ? `Scope (from solicitation documents): ${o.contentSummary.slice(0, 3000)}`
+    : `Description: ${(o.description || '(no description available)').slice(0, 2000)}`}
 
 DETERMINISTIC BREAKDOWN (already computed):
 - Eligibility ${det.eligibility.score}% | Fit ${det.fit.score}% | Edge ${det.edge.score}% | TOTAL ${det.matchScore}% (${det.label})
@@ -231,7 +235,8 @@ async function callKimi(
 
 /** Is an opportunity worth an AI review? (selectivity guard) */
 function eligibleForKimi(o: OppForScoring, det: OpportunityAssessment): boolean {
-  return det.matchScore >= 30 && (o.description?.trim().length ?? 0) >= 100;
+  const textLen = (o.contentSummary?.trim().length ?? 0) || (o.description?.trim().length ?? 0);
+  return det.matchScore >= 30 && textLen >= 100;
 }
 
 /**
