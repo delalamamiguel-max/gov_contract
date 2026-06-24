@@ -269,7 +269,14 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
   // same non-keyword filters.
   const baseQuery = () => {
     let q = supabase.from(TABLE).select('*').in('status', VISIBLE_STATUSES as unknown as string[]).or(CA_OR_FILTER);
-    
+
+    // Phase 0 gate LIVE: only surface marketing/communications opportunities.
+    // is_marketing=true  → classified as relevant, always show.
+    // is_marketing=null  → not yet classified (new arrivals before the classify
+    //                      cron runs); show by default so the feed never goes dark.
+    // is_marketing=false → confirmed non-marketing; exclude.
+    q = q.or('is_marketing.eq.true,is_marketing.is.null');
+
     // Do not return expired contracts (where deadline is already past).
     const today = new Date().toISOString();
     q = q.or(`response_deadline.gte.${today},response_deadline.is.null`);
@@ -381,12 +388,17 @@ export async function queryOpportunities(opts: QueryOptions = {}): Promise<Query
   }
 }
 
-/** Count of stored active opportunities (for empty-state messaging). */
+/** Count of stored active marketing opportunities (for empty-state messaging). */
 export async function countOpportunities(): Promise<number> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 0;
   try {
-    const { count } = await supabase.from(TABLE).select('id', { count: 'exact', head: true }).in('status', VISIBLE_STATUSES as unknown as string[]).or(CA_OR_FILTER);
+    const { count } = await supabase
+      .from(TABLE)
+      .select('id', { count: 'exact', head: true })
+      .in('status', VISIBLE_STATUSES as unknown as string[])
+      .or(CA_OR_FILTER)
+      .or('is_marketing.eq.true,is_marketing.is.null');
     return count ?? 0;
   } catch {
     return 0;
