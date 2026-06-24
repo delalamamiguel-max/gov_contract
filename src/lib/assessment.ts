@@ -131,11 +131,13 @@ export interface OpportunityAssessment {
   remoteEligible: boolean;
   distanceMiles: number | null;
   withinRadius: boolean;
-  // AI nuance layer (Kimi). Present only when the opportunity was AI-reviewed.
-  // The deterministic matchScore above is already adjusted by kimiAdjustment when
-  // these are set; kimiReason explains what nuance the keyword engine missed.
-  kimiAdjustment?: number;
-  kimiReason?: string;
+  // AI nuance layer (GLM 5.2). Present only when the opportunity was AI-reviewed.
+  // The deterministic matchScore above is already adjusted by glmAdjustment when
+  // these are set; glmReason explains what nuance the keyword engine missed.
+  glmAdjustment?: number;
+  glmReason?: string;
+  /** @deprecated use glmAdjustment */ kimiAdjustment?: number;
+  /** @deprecated use glmReason */ kimiReason?: string;
   // Phase 3 semantic layer: cosine similarity (0..1) between the agency profile
   // and the opportunity's document-derived embedding, when available. Drives a
   // small bounded re-ranking nudge — never the primary score.

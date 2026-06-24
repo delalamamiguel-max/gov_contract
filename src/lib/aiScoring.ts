@@ -5,52 +5,54 @@ import type { AgencyProfile } from '@/lib/profile';
 import { labelFor, type OpportunityAssessment } from '@/lib/assessment';
 
 // ---------------------------------------------------------------------------
-// AI nuance layer — Kimi (via Ollama Cloud, OpenAI-compatible).
+// AI nuance layer — GLM 5.2 (via Ollama Cloud, OpenAI-compatible).
 //
 // The deterministic engine (assessment.ts) scores on keyword overlap and field
 // values. It cannot read intent, industry context, or implicit on-site/staffing
-// requirements from natural-language descriptions. This module asks Kimi for a
-// BOUNDED adjustment (-25..+25) to the deterministic score — never a re-score —
-// and caches the result in Supabase keyed by (source_id, profile_hash).
+// requirements from natural-language descriptions. This module asks GLM 5.2 for
+// a BOUNDED adjustment (-50..+25) to the deterministic score — never a re-score
+// — and caches the result in Supabase keyed by (source_id, profile_hash).
 //
 // Guarantees:
-//  - Hard gates are immutable: if hardRequirementMissing, Kimi cannot push the
+//  - Hard gates are immutable: if hardRequirementMissing, GLM cannot push the
 //    score above the 39 cap.
 //  - Always safe: any error / timeout / missing config returns adjustment 0.
 //  - Selective + cached: callers send only the top N candidates; repeats hit
 //    the cache (no model call).
 //
-// Config (env): OLLAMA_API_KEY (or KIMI_API_KEY), KIMI_BASE_URL, KIMI_MODEL,
-// KIMI_MAX_TOKENS. kimi-k2-thinking is a REASONING model — it requires a bounded
-// max_tokens or the request 400s ("prompt too long"); reasoning consumes ~1300
-// tokens, so keep headroom above that.
+// Config (env): OLLAMA_API_KEY (or GLM_API_KEY), GLM_BASE_URL, GLM_MODEL,
+// GLM_MAX_TOKENS. GLM 5.2 is a reasoning model — keep max_tokens bounded.
 // ---------------------------------------------------------------------------
 
-const KIMI_API_KEY = process.env.OLLAMA_API_KEY || process.env.KIMI_API_KEY || '';
-const KIMI_BASE_URL = process.env.KIMI_BASE_URL || process.env.AI_BASE_URL || 'https://ollama.com/v1';
-const KIMI_MODEL = process.env.KIMI_MODEL || 'glm-5.2:cloud';
-const KIMI_MAX_TOKENS = Number(process.env.KIMI_MAX_TOKENS || 3000);
-const KIMI_TIMEOUT_MS = 30_000;
+const GLM_API_KEY = process.env.OLLAMA_API_KEY || process.env.GLM_API_KEY || process.env.KIMI_API_KEY || '';
+const GLM_BASE_URL = process.env.GLM_BASE_URL || process.env.KIMI_BASE_URL || process.env.AI_BASE_URL || 'https://ollama.com/v1';
+const GLM_MODEL = process.env.GLM_MODEL || process.env.KIMI_MODEL || 'glm-5.2:cloud';
+const GLM_MAX_TOKENS = Number(process.env.GLM_MAX_TOKENS || process.env.KIMI_MAX_TOKENS || 3000);
+const GLM_TIMEOUT_MS = 30_000;
 const CACHE_TTL_DAYS = 7;
 
-export const kimiEnabled = Boolean(KIMI_API_KEY);
+export const glmEnabled = Boolean(GLM_API_KEY);
+/** @deprecated use glmEnabled */
+export const kimiEnabled = glmEnabled;
 
 const client = new OpenAI({
-  apiKey: KIMI_API_KEY || 'dummy_key',
-  baseURL: KIMI_BASE_URL,
-  timeout: KIMI_TIMEOUT_MS + 5_000,
+  apiKey: GLM_API_KEY || 'dummy_key',
+  baseURL: GLM_BASE_URL,
+  timeout: GLM_TIMEOUT_MS + 5_000,
 });
 
 const TABLE = 'opportunity_ai_scores';
 
-export interface KimiAdjustment {
+export interface GlmAdjustment {
   adjustment: number; // -50..+25
   reason: string;
   confidence: 'high' | 'medium' | 'low';
-  source: 'kimi' | 'cache' | 'skipped';
+  source: 'glm' | 'cache' | 'skipped';
 }
+/** @deprecated use GlmAdjustment */
+export type KimiAdjustment = GlmAdjustment;
 
-const ZERO: KimiAdjustment = { adjustment: 0, reason: '', confidence: 'low', source: 'skipped' };
+const ZERO: GlmAdjustment = { adjustment: 0, reason: '', confidence: 'low', source: 'skipped' };
 
 /** Minimal opportunity shape this module reads. */
 export interface OppForScoring {
@@ -96,8 +98,8 @@ function normConfidence(c: unknown): 'high' | 'medium' | 'low' {
 
 // --------------------------- cache ---------------------------
 
-async function readCache(ids: string[], profileHash: string): Promise<Map<string, KimiAdjustment>> {
-  const out = new Map<string, KimiAdjustment>();
+async function readCache(ids: string[], profileHash: string): Promise<Map<string, GlmAdjustment>> {
+  const out = new Map<string, GlmAdjustment>();
   const supabase = getSupabaseAdmin();
   if (!supabase || ids.length === 0) return out;
   const cutoff = new Date(Date.now() - CACHE_TTL_DAYS * 86_400_000).toISOString();
@@ -129,7 +131,7 @@ async function readCache(ids: string[], profileHash: string): Promise<Map<string
 async function writeCache(
   sourceId: string,
   profileHash: string,
-  adj: KimiAdjustment
+  adj: GlmAdjustment
 ): Promise<void> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
@@ -141,7 +143,7 @@ async function writeCache(
         adjustment: clampAdj(adj.adjustment),
         reason: adj.reason.slice(0, 500),
         confidence: adj.confidence,
-        model: KIMI_MODEL,
+        model: GLM_MODEL,
         created_at: new Date().toISOString(),
       },
       { onConflict: 'source_id,profile_hash' }
@@ -192,20 +194,20 @@ Return STRICT JSON ONLY, no markdown:
 {"adjustment": <int -50..25>, "reason": "<one concise sentence>", "confidence": "high|medium|low"}`;
 }
 
-async function callKimi(
+async function callGlm(
   o: OppForScoring,
   profile: AgencyProfile,
   det: OpportunityAssessment
-): Promise<KimiAdjustment> {
+): Promise<GlmAdjustment> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), KIMI_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), GLM_TIMEOUT_MS);
   try {
     const res = await client.chat.completions.create(
       {
-        model: KIMI_MODEL,
+        model: GLM_MODEL,
         messages: [{ role: 'user', content: buildPrompt(o, profile, det) }],
         temperature: 0.2,
-        max_tokens: KIMI_MAX_TOKENS,
+        max_tokens: GLM_MAX_TOKENS,
       },
       { signal: controller.signal }
     );
@@ -220,13 +222,13 @@ async function callKimi(
       adjustment: clampAdj(parsed.adjustment),
       reason: typeof parsed.reason === 'string' ? parsed.reason : '',
       confidence: normConfidence(parsed.confidence),
-      source: 'kimi',
+      source: 'glm',
     };
   } catch (e) {
     clearTimeout(timeoutId);
     const name = e instanceof Error ? e.name : '';
-    if (name === 'AbortError') console.warn('[aiScoring] Kimi timed out; adjustment 0.');
-    else console.warn('[aiScoring] Kimi error; adjustment 0:', e instanceof Error ? e.message : e);
+    if (name === 'AbortError') console.warn('[aiScoring] GLM timed out; adjustment 0.');
+    else console.warn('[aiScoring] GLM error; adjustment 0:', e instanceof Error ? e.message : e);
     return ZERO;
   }
 }
@@ -234,28 +236,27 @@ async function callKimi(
 // --------------------------- public API ---------------------------
 
 /** Is an opportunity worth an AI review? (selectivity guard) */
-function eligibleForKimi(o: OppForScoring, det: OpportunityAssessment): boolean {
+function eligibleForGlm(o: OppForScoring, det: OpportunityAssessment): boolean {
   const textLen = (o.contentSummary?.trim().length ?? 0) || (o.description?.trim().length ?? 0);
   return det.matchScore >= 30 && textLen >= 100;
 }
 
 /**
- * Apply Kimi nuance adjustments IN PLACE to the top `topN` items (already sorted
- * by deterministic score, highest first). Mutates each item's assessment:
- * matchScore, label, kimiAdjustment, kimiReason. Cache-first; only uncached,
+ * Apply GLM 5.2 nuance adjustments IN PLACE to the top `topN` items (already
+ * sorted by deterministic score, highest first). Mutates each item's assessment:
+ * matchScore, label, glmAdjustment, glmReason. Cache-first; only uncached,
  * eligible items hit the model. Hard gates are never overridden.
  *
- * Returns the same array reference (caller should re-sort afterwards, since an
- * adjustment can reorder cards).
+ * Returns the same array reference (caller should re-sort afterwards).
  */
-export async function applyKimiAdjustments<T extends { o: OppForScoring; a: OpportunityAssessment }>(
+export async function applyGlmAdjustments<T extends { o: OppForScoring; a: OpportunityAssessment }>(
   items: T[],
   profile: AgencyProfile,
   topN: number
 ): Promise<T[]> {
-  if (!kimiEnabled || items.length === 0) return items;
+  if (!glmEnabled || items.length === 0) return items;
 
-  const candidates = items.slice(0, topN).filter((it) => eligibleForKimi(it.o, it.a));
+  const candidates = items.slice(0, topN).filter((it) => eligibleForGlm(it.o, it.a));
   if (candidates.length === 0) return items;
 
   const profileHash = buildProfileHash(profile);
@@ -267,13 +268,10 @@ export async function applyKimiAdjustments<T extends { o: OppForScoring; a: Oppo
       const id = oppId(it.o);
       let adj = id ? cache.get(id) : undefined;
       if (!adj) {
-        adj = await callKimi(it.o, profile, it.a);
-        if (id && adj.source === 'kimi') void writeCache(id, profileHash, adj);
+        adj = await callGlm(it.o, profile, it.a);
+        if (id && adj.source === 'glm') void writeCache(id, profileHash, adj);
       }
-      if (!adj || adj.adjustment === 0) {
-        // Record that AI reviewed it and found the score appropriate (no badge).
-        return;
-      }
+      if (!adj || adj.adjustment === 0) return;
       const a = it.a;
       let next = a.matchScore + adj.adjustment;
       // Hard gates are immutable — AI cannot lift a capped score.
@@ -281,21 +279,24 @@ export async function applyKimiAdjustments<T extends { o: OppForScoring; a: Oppo
       next = Math.max(0, Math.min(100, next));
       a.matchScore = next;
       a.label = labelFor(next);
-      a.kimiAdjustment = adj.adjustment;
-      a.kimiReason = adj.reason;
+      a.glmAdjustment = adj.adjustment;
+      a.glmReason = adj.reason;
     })
   );
 
   return items;
 }
 
+/** @deprecated use applyGlmAdjustments */
+export const applyKimiAdjustments = applyGlmAdjustments;
+
 /** Single-opportunity helper (used where only one assessment is adjusted). */
-export async function getKimiAdjustment(
+export async function getGlmAdjustment(
   o: OppForScoring,
   profile: AgencyProfile,
   det: OpportunityAssessment
-): Promise<KimiAdjustment> {
-  if (!kimiEnabled || !eligibleForKimi(o, det)) return ZERO;
+): Promise<GlmAdjustment> {
+  if (!glmEnabled || !eligibleForGlm(o, det)) return ZERO;
   const profileHash = buildProfileHash(profile);
   const id = oppId(o);
   if (id) {
@@ -303,7 +304,10 @@ export async function getKimiAdjustment(
     const hit = cache.get(id);
     if (hit) return hit;
   }
-  const adj = await callKimi(o, profile, det);
-  if (id && adj.source === 'kimi') void writeCache(id, profileHash, adj);
+  const adj = await callGlm(o, profile, det);
+  if (id && adj.source === 'glm') void writeCache(id, profileHash, adj);
   return adj;
 }
+
+/** @deprecated use getGlmAdjustment */
+export const getKimiAdjustment = getGlmAdjustment;

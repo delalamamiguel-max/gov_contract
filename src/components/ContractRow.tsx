@@ -186,9 +186,9 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
               <span style={{ padding: '0.2rem 0.5rem', borderRadius: 999, fontSize: '0.7rem', fontWeight: 600, background: chip.bg, color: chip.fg }}>
                 {a.label}
               </span>
-              {a.kimiReason && (
+              {a.glmReason && (
                 <span
-                  title={`AI review: ${a.kimiReason}`}
+                  title={`AI review: ${a.glmReason}`}
                   style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--accent-primary)' }}
                 >
                   <Wand2 size={13} />
@@ -208,10 +208,10 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
             {opp.agency} &bull; Est. Value: {opp.value} &bull; Due: {opp.responseDeadline ? new Date(opp.responseDeadline).toLocaleDateString() : 'TBD'}
           </p>
           {/* Brief gist shown on unexpanded card */}
-          {!expanded && (a.kimiReason || opp.description) && (
+          {!expanded && (a.glmReason || opp.description) && (
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.3rem 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-              {a.kimiReason ? (
-                <span><strong style={{color: 'var(--accent-primary)'}}>AI Note:</strong> {a.kimiReason}</span>
+              {a.glmReason ? (
+                <span><strong style={{color: 'var(--accent-primary)'}}>AI Note:</strong> {a.glmReason}</span>
               ) : (
                 <span>{opp.description?.substring(0, 150)}...</span>
               )}
@@ -290,7 +290,7 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
           <div onClick={(e) => e.stopPropagation()}>
             {tab === 'assessment' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {a.kimiReason && (
+                {a.glmReason && (
                   <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
                     padding: '0.6rem 0.75rem', borderRadius: 8,
@@ -299,7 +299,7 @@ export default function ContractRow({ opp, radius = 50 }: ContractRowProps) {
                     fontSize: '0.82rem', color: 'var(--text-secondary)',
                   }}>
                     <Wand2 size={13} style={{ color: 'var(--accent-primary)', flexShrink: 0, marginTop: 2 }} />
-                    <span><strong style={{ color: 'var(--accent-primary)' }}>AI review note:</strong> {a.kimiReason}</span>
+                    <span><strong style={{ color: 'var(--accent-primary)' }}>AI review note:</strong> {a.glmReason}</span>
                   </div>
                 )}
                 <OpportunityAssessmentCard a={a} />

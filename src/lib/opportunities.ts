@@ -42,7 +42,7 @@ export type OpportunityRecord = SamGovOpportunity & {
   raw?: any;
   /** Phase 2 intel: concise SOW-derived text for the deterministic keyword scorer. */
   contentText?: string | null;
-  /** Phase 2 intel: plain-English scope summary for the AI (Kimi) scoring prompt. */
+  /** Phase 2 intel: plain-English scope summary for the AI (GLM 5.2) scoring prompt. */
   contentSummary?: string | null;
   /** Phase 2 intel: structured entities (required services, deliverables, eval criteria…). */
   intelEntities?: OpportunityEntities | null;

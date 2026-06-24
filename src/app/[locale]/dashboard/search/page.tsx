@@ -71,7 +71,7 @@ export default async function SearchPage({
       ? assessed
       : assessed.filter(({ a }) => a.withinRadius || a.remoteEligible);
   radiusFiltered.sort((x, y) => y.a.matchScore - x.a.matchScore);
-  // AI nuance pass (Kimi) on the top results above the fold. Cache-first, safe
+  // AI nuance pass (GLM 5.2) on the top results above the fold. Cache-first, safe
   // no-op when unconfigured; an adjustment can reorder, so re-sort after.
   await applyKimiAdjustments(radiusFiltered, profile, 10);
   // Phase 3: bounded semantic re-rank. Cached-only here (recommendations warms

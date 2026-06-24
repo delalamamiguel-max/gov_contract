@@ -8,12 +8,12 @@ import OpenAI from 'openai';
 //   AI_BASE_URL     — default https://ollama.com/v1
 //   AI_MODEL        — default gpt-oss:20b
 //
-// Falls back to KIMI_API_KEY / Moonshot only if explicitly configured that way.
+// Falls back to GLM_API_KEY / KIMI_API_KEY for backwards compat.
 // IMPORTANT: gpt-oss is a reasoning model — do NOT set a small max_tokens or the
 // visible answer comes back empty (hidden reasoning eats the budget).
 // ---------------------------------------------------------------------------
 
-const AI_API_KEY = process.env.OLLAMA_API_KEY || process.env.KIMI_API_KEY || '';
+const AI_API_KEY = process.env.OLLAMA_API_KEY || process.env.GLM_API_KEY || process.env.KIMI_API_KEY || '';
 const AI_BASE_URL = process.env.AI_BASE_URL || 'https://ollama.com/v1';
 const AI_MODEL = process.env.AI_MODEL || 'glm-5.2:cloud';
 const AI_REQUEST_TIMEOUT_MS = 25_000;

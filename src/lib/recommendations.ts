@@ -6,7 +6,7 @@ import { applyKimiAdjustments } from '@/lib/aiScoring';
 import { applySemanticAdjustment } from '@/lib/embeddings';
 
 /** How many top candidates (by deterministic score) get an AI nuance review. */
-const KIMI_TOP_N = 20;
+const GLM_TOP_N = 20;
 
 // ---------------------------------------------------------------------------
 // Recommendations / personalized feed. Backend data-access layer that scores
@@ -181,14 +181,14 @@ export async function getRecommendations(
     })
     .filter(({ a }) => a.matchScore >= otherFloor && (a.withinRadius || a.remoteEligible));
 
-  // AI nuance pass (Kimi): adjust the top candidates by deterministic score so
+  // AI nuance pass (GLM 5.2): adjust the top candidates by deterministic score so
   // the primary feed reflects nuances keyword-matching can't see. Sort first so
   // the "top N" are the right ones; the adjustment can reorder, so we rely on the
   // per-block sortBlock() below to re-order. Hard gates remain immutable. Safe
   // no-op when AI is unconfigured or unreachable. Lower-confidence "other"
   // matches are intentionally not AI-reviewed (saves budget).
   allScored.sort((x, y) => y.a.matchScore - x.a.matchScore);
-  await applyKimiAdjustments(allScored, profile, KIMI_TOP_N);
+  await applyKimiAdjustments(allScored, profile, GLM_TOP_N);
   // Phase 3: bounded semantic re-ranking using document embeddings. Warms the
   // profile vector on first use (cached thereafter); safe no-op without vectors.
   await applySemanticAdjustment(allScored, profile, { computeProfile: true });

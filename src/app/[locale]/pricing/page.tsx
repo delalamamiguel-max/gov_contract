@@ -66,7 +66,7 @@ export default function PricingPage() {
           </li>
           <li className="flex items-center gap-3">
             <Check className="w-5 h-5 text-blue-600" />
-            <span>Premium Kimi AI Intelligence Models</span>
+            <span>Premium GLM 5.2 AI Intelligence Models</span>
           </li>
         </ul>
 
